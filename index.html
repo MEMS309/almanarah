@@ -113,7 +113,8 @@ var I18N = {
     setupNote:'هذا المفتاح آمن للنشر — كل الحماية مفروضة من قاعدة البيانات.',
     login:'تسجيل الدخول', signup:'إنشاء حساب', email:'البريد الإلكتروني', password:'كلمة المرور',
     pwd2:'تأكيد كلمة المرور', name:'الاسم الكامل', phone:'الهاتف (اختياري)',
-    forgot:'نسيت كلمة المرور؟', logout:'تسجيل الخروج', save2:'حفظ', search:'بحث', print:'طباعة', copy:'نسخ',
+    forgot:'نسيت كلمة المرور؟', resend:'إعادة إرسال رابط التأكيد', logout:'تسجيل الخروج',
+    save2:'حفظ', search:'بحث', print:'طباعة', copy:'نسخ',
     home:'الرئيسية', library:'مكتبتي', catalog:'الكتالوج', profile:'ملفي',
     officerHome:'غرفة التسجيل', findStudent:'البحث عن طالب', confirmPay:'تأكيد دفعة',
     issueCode:'إصدار أكواد', myCodes:'أكوادي', adminHome:'لوحة القياس', users:'المستخدمون',
@@ -140,8 +141,8 @@ var I18N = {
     url:'Project URL', anon:'Publishable key', save:'Save & start', test:'Test connection',
     setupNote:'This key is safe to ship — all security is enforced by the database.',
     login:'Log in', signup:'Sign up', email:'Email', password:'Password', pwd2:'Confirm password',
-    name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?', logout:'Log out',
-    save2:'Save', search:'Search', print:'Print', copy:'Copy',
+    name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?', resend:'Resend confirmation',
+    logout:'Log out', save2:'Save', search:'Search', print:'Print', copy:'Copy',
     home:'Home', library:'My learning', catalog:'Catalog', profile:'Profile',
     officerHome:'Enrollment desk', findStudent:'Find student', confirmPay:'Confirm payment',
     issueCode:'Issue codes', myCodes:'My codes', adminHome:'Dashboard', users:'Users',
@@ -171,7 +172,7 @@ function t(k){ var d=I18N.ar[k]; var v=I18N[lang] && I18N[lang][k]; return (v===
 var cfg = LS.get('mn_cfg', null);
 var token = null;
 var S = { session:null, profile:null, roles:[], route:'home', authMode:'login',
-          codes:[], lastStudent:null, findEmail:'', userQuery:'' };
+          codes:[], lastStudent:null, findEmail:'', userQuery:'', authError:null };
 
 function applyChrome(){
   document.documentElement.lang = lang;
@@ -183,12 +184,15 @@ function toast(msg,kind){
   d.className='toast '+(kind||'');
   d.textContent=msg;
   $('#toasts').appendChild(d);
-  setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity .4s'; setTimeout(function(){ d.remove(); },400); }, 4200);
+  setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity .4s'; setTimeout(function(){ d.remove(); },400); }, 5000);
 }
+
+/* ---- خريطة الأخطاء: من كود Supasonic إلى جملة تفهمها ---- */
 var ERRS = {
   student_not_found:'الطالب غير مسجّل — تأكد من البريد',
   student_not_active:'حساب الطالب غير نشط — راجع لوحة الإدارة',
-  email_not_confirmed:'بريد الطالب غير مؤكد بعد',
+  email_not_confirmed:'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد، أو استخدم زر "إعادة إرسال".',
+  email_not_confirmed_signup:'بريد الحساب غير مؤكد بعد',
   forbidden:'لا تملك صلاحية تنفيذ هذه العملية',
   code_invalid:'كود غير صحيح',
   code_already_used:'هذا الكود مستخدم بالفعل',
@@ -198,17 +202,33 @@ var ERRS = {
   payment_not_found:'سجل الدفع غير موجود',
   code_not_found:'الكود غير موجود',
   code_not_cancellable:'لا يمكن إلغاء كود مستخدم',
-  user_not_found:'المستخدم غير موجود',
+  user_not_found:'مافيش حساب بالبريد ده — سجّل حساب جديد الأول',
   batch_out_of_range:'عدد الأكواد يجب أن يكون بين 1 و 500',
   invalid_credentials:'البريد أو كلمة المرور غير صحيحة',
   invalid_grant:'البريد أو كلمة المرور غير صحيحة',
   immutable_record:'سجل محمي — لا يمكن التعديل',
-  user_already_exists:'هذا البريد مسجّل بالفعل'
+  user_already_exists:'هذا البريد مسجّل بالفعل — جرّب تسجيل الدخول',
+  signup_disabled:'التسجيل مغلق حالياً من إعدادات Supabase',
+  email_address_not_authorized:'هذا البريد غير مسموح به في إعدادات Supabase',
+  weak_password:'كلمة المرور ضعيفة — استخدم 8 أحرف على الأقل',
+  over_email_send_rate_limit:'محاولات كتير — استنى دقيقة وجرّب تاني',
+  over_request_rate_limit:'طلبات كتير — استنى دقيقة وجرّب تاني'
 };
 function errMsg(e){
-  var m = (e && (e.code || e.message)) || '';
+  var raw = (e && (e.code || e.message || e.msg)) || '';
+  var m = String(raw);
   if(ERRS[m]) return ERRS[m];
-  if(String(m).indexOf('Failed to fetch')>=0) return 'تعذّر الوصول للسيرفر — تحقّق من الإنترنت أو من المفاتيح';
+  if(/failed to fetch|networkerror|load failed/i.test(m))
+    return 'تعذّر الوصول للسيرفر — تحقّق من الإنترنت أو من المفاتيح';
+  if(/not confirm/i.test(m))  return 'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد.';
+  if(/invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة';
+  if(/user not found/i.test(m)) return 'مافيش حساب بالبريد ده — سجّل حساب جديد الأول';
+  if(/relation .* does not exist|pgrst205/i.test(m))
+    return 'الجداول مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase SQL Editor';
+  if(/does not exist/i.test(m) && /function/i.test(m))
+    return 'الدوال مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase SQL Editor';
+  if(m.indexOf('HTTP 401')===0 || m.indexOf('HTTP 403')===0)
+    return 'المفتاح غير صحيح أو منتهي — راجع Project URL و Publishable key';
   return m || t('err');
 }
 
@@ -230,10 +250,11 @@ function api(path, opt){
       var j = null;
       if(txt){ try{ j = JSON.parse(txt); }catch(e){ j = { message: txt.slice(0,300) }; } }
       if(!r.ok){
-        var m = (j && (j.message || j.msg || j.error_description || j.error)) || ('HTTP ' + r.status);
-        var err = new Error(m);
-        err.code = (j && j.code) || m;
+        var m = (j && (j.error_code || j.code || j.message || j.msg || j.error_description || j.error)) || ('HTTP ' + r.status);
+        var err = new Error(String(m));
+        err.code = String(m);
         err.status = r.status;
+        err.raw = txt.slice(0,300);
         throw err;
       }
       return j;
@@ -260,10 +281,12 @@ var Auth = {
       body:{ email:email, password:password }})
       .then(function(j){ setSession(j); return j; });
   },
-  recover: function(email){ return api('/auth/v1/recover',{method:'POST',auth:false,body:{email:email}}); },
-  logout: function(){ return api('/auth/v1/logout',{method:'POST'}).catch(function(){}).then(clearSession); },
-  me: function(){ return api('/auth/v1/user'); },
-  update: function(body){ return api('/auth/v1/user',{method:'PUT',body:body}).then(function(j){ if(j.access_token) setSession(j); return j; }); }
+  recover:  function(email){ return api('/auth/v1/recover',{method:'POST',auth:false,body:{email:email}}); },
+  resend:   function(email){ return api('/auth/v1/resend',{method:'POST',auth:false,
+      body:{ type:'signup', email:email }}); },
+  logout:   function(){ return api('/auth/v1/logout',{method:'POST'}).catch(function(){}).then(clearSession); },
+  me:       function(){ return api('/auth/v1/user'); },
+  update:   function(body){ return api('/auth/v1/user',{method:'PUT',body:body}).then(function(j){ if(j.access_token) setSession(j); return j; }); }
 };
 var db = {
   select: function(table,q){ return api('/rest/v1/'+table+'?select=*'+(q?('&'+q):'')); },
@@ -285,7 +308,7 @@ function renderSetup(){
       '<h1>'+esc(t('setupTitle'))+'</h1>'+
       '<p class="mut">'+esc(t('setupHint'))+'</p>'+
       '<div class="hint good">✅ انسخ <b>Publishable key</b> — اللي بيبدأ بـ <span class="mono">sb_publishable_…</span></div>'+
-      '<div class="hint dang">❌ متنسخش <b>Secret key</b> أبداً — اللي بيبدأ بـ <span class="mono">sb_secret_…</span> (ده بيفتح كل حاجة من غير حماية)</div>'+
+      '<div class="hint dang">❌ متنسخش <b>Secret key</b> أبداً — اللي بيبدأ بـ <span class="mono">sb_secret_…</span> (بيفتح كل حاجة من غير حماية)</div>'+
       '<div id="setup_diag"></div>'+
       '<label>'+esc(t('url'))+'</label>'+
       '<input id="s_url" placeholder="https://xxxxxxxx.supabase.co" value="'+esc(cfg?cfg.url:'')+'">'+
@@ -308,9 +331,9 @@ function renderSetup(){
       .then(function(r){ return r.text().then(function(x){
         box.innerHTML = r.ok
           ? '<div class="diag ok">✅ الاتصال ناجح — القيمتين صح. دوس "حفظ وبدء".</div>'
-          : '<div class="diag">الاتصال فشل ('+r.status+')\n'+x.slice(0,400)+'</div>';
+          : '<div class="diag">الاتصال فشل ('+r.status+')\n'+x.slice(0,500)+'</div>';
       });})
-      .catch(function(e){ box.innerHTML='<div class="diag">فشل الوصول:\n'+esc(String(e))+'</div>'; });
+      .catch(function(e){ box.innerHTML='<div class="diag">فشل الوصول:\n'+esc(String(e))+'\n\nتأكد: الإنترنت شغال؟ الURL من Supabase؟ المفتاح Publishable؟</div>'; });
   };
 
   $('#s_go').onclick = function(){
@@ -327,6 +350,13 @@ function renderSetup(){
 
 function renderAuth(){
   var mode = S.authMode||'login';
+  var errBox = S.authError
+    ? '<div class="diag">'+esc(S.authError)+'</div>'
+    : '';
+  var resendBox = (mode==='login' && S.authUnconfirmed)
+    ? '<div class="row" style="margin-top:8px"><button class="btn btn-s" id="a_resend">'+esc(t('resend'))+'</button></div>'
+    : '';
+
   $('#app').innerHTML =
   '<div class="center">'+
     '<div class="hero" style="text-align:center">'+
@@ -334,6 +364,7 @@ function renderAuth(){
       '<p class="mut" style="margin:6px 0 0">'+esc(t('tagline'))+'</p>'+
     '</div>'+
     '<div class="card">'+
+      errBox+
       '<div class="row" style="margin-bottom:8px">'+
         '<button class="btn btn-s '+(mode==='login'?'btn-p':'')+'" id="m_login">'+esc(t('login'))+'</button>'+
         '<button class="btn btn-s '+(mode==='signup'?'btn-p':'')+'" id="m_signup">'+esc(t('signup'))+'</button>'+
@@ -345,26 +376,34 @@ function renderAuth(){
       '<div class="row" style="margin-top:16px">'+
         '<button class="btn btn-p grow" id="a_go">'+esc(mode==='login'?t('login'):t('signup'))+'</button>'+
       '</div>'+
+      resendBox+
       (mode==='login' ? '<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">'+esc(t('forgot'))+'</button></div>' : '')+
     '</div>'+
   '</div>';
 
-  $('#m_login').onclick=function(){ S.authMode='login'; renderAuth(); };
-  $('#m_signup').onclick=function(){ S.authMode='signup'; renderAuth(); };
+  $('#m_login').onclick=function(){ S.authMode='login'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
+  $('#m_signup').onclick=function(){ S.authMode='signup'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
 
   $('#a_go').onclick=function(){
     var email=$('#a_email').value.trim(), pwd=$('#a_pwd').value;
-    if(!email||!pwd){ toast(t('err'),'bad'); return; }
-    var done = function(){ return loadMe().then(render); };
-    var fail = function(e){ toast(errMsg(e),'bad'); };
+    S.authError=null; S.authUnconfirmed=false;
+    if(!email||!pwd){ S.authError='اكتب البريد وكلمة المرور'; S.authUnconfirmed=false; renderAuth(); return; }
+    var done = function(){ S.authError=null; return loadMe().then(render); };
+    var fail = function(e){
+      S.authError = errMsg(e);
+      S.authUnconfirmed = /not confirm|email_not_confirmed/i.test(String(e&&(e.code||e.message)));
+      renderAuth();
+    };
 
     if(mode==='signup'){
-      if(pwd!==$('#a_pwd2').value){ toast('كلمتا المرور غير متطابقتين','bad'); return; }
+      if(pwd!==$('#a_pwd2').value){ S.authError='كلمتا المرور غير متطابقتين'; renderAuth(); return; }
+      if(pwd.length<8){ S.authError='كلمة المرور 8 أحرف على الأقل'; renderAuth(); return; }
       var phone=$('#a_phone').value.trim();
       Auth.signUp(email,pwd,$('#a_name').value.trim())
         .then(function(j){
           if(!j.access_token){
-            toast('تم إنشاء الحساب — أكّد بريدك من الرابط المرسل','ok');
+            S.authError='تم إنشاء الحساب — ادخل على بريدك ودوس رابط التأكيد، وبعدين سجّل الدخول.';
+            S.authUnconfirmed=true;
             S.authMode='login'; renderAuth(); return;
           }
           if(phone){
@@ -380,11 +419,20 @@ function renderAuth(){
   if(mode==='login'){
     $('#a_forgot').onclick=function(){
       var email=$('#a_email').value.trim();
-      if(!email){ toast(t('err'),'bad'); return; }
+      if(!email){ S.authError='اكتب بريدك الأول'; renderAuth(); return; }
       Auth.recover(email)
-        .then(function(){ toast('أُرسل رابط الاستعادة إلى بريدك','ok'); })
-        .catch(function(e){ toast(errMsg(e),'bad'); });
+        .then(function(){ S.authError='أُرسل رابط استعادة كلمة المرور إلى بريدك.'; renderAuth(); })
+        .catch(function(e){ S.authError=errMsg(e); renderAuth(); });
     };
+    if(S.authUnconfirmed && $('#a_resend')){
+      $('#a_resend').onclick=function(){
+        var email=$('#a_email').value.trim();
+        if(!email) return;
+        Auth.resend(email)
+          .then(function(){ toast('أُرسل رابط التأكيد — شوف بريدك','ok'); })
+          .catch(function(e){ toast(errMsg(e),'bad'); });
+      };
+    }
   }
 }
 
@@ -765,7 +813,7 @@ function viewIssue(){
         (subOpts||'<span class="mut">لا توجد مواد</span>')+'</div>'+
       '<div class="row">'+
         '<div class="grow"><label>'+esc(t('batchSize'))+'</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>'+
-        '<div class="grow"><label>'+esc(t('maxUses'))+'</label><input id="i_uses" type="number" min="1" value="1"></div>'+
+        '<div class="grow"><label>'+esc(t('maxUses'))}</label><input id="i_uses" type="number" min="1" value="1"></div>'+
         '<div class="grow"><label>'+esc(t('accessDays'))+'</label><input id="i_days" type="number" min="0" placeholder="∞"></div>'+
       '</div>'+
       '<label>'+esc(t('validUntil'))+'</label><input id="i_until" type="date">'+
