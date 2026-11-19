@@ -98,30 +98,38 @@ th{color:var(--tx2);font-size:12px;font-weight:600}
 var FATAL = document.getElementById('fatal');
 if (FATAL) FATAL.style.display = 'none';
 
-var $ = function(s,r){ return (r||document).querySelector(s); };
+/* أدوات آمنة: لو العنصر مش موجود، ماتكسرش */
+function $(sel, root){
+  try { return (root || document).querySelector(sel); } catch(e){ return null; }
+}
+function setHTML(el, html){
+  if (el) el.innerHTML = html;
+}
 var LS = {
   get: function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-  set: function(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
-  del: function(k){ localStorage.removeItem(k); }
+  set: function(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del: function(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
   });
 }
+function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
+function on(el, ev, fn){ if (el) el.addEventListener(ev, fn); }
 
 /* ============================== الترجمات ============================== */
 var I18N = {
   ar:{
     appName:'المنارة', tagline:'تعلّم بوضوح',
-    setupTitle:'ربط المنارة بمشروعك', setupHint:'افتح Supabase → Project Settings → API وانسخ القيمتين.',
+    setupTitle:'ربط المنارة بمشروعك', setupHint:'افتح Supabase ثم Project Settings ثم API وانسخ القيمتين.',
     url:'Project URL', anon:'المفتاح العام (Publishable key)', save:'حفظ وبدء', test:'اختبار الاتصال',
     setupNote:'هذا المفتاح آمن للنشر — كل الحماية مفروضة من قاعدة البيانات.',
     login:'تسجيل الدخول', signup:'إنشاء حساب', email:'البريد الإلكتروني', password:'كلمة المرور',
     pwd2:'تأكيد كلمة المرور', name:'الاسم الكامل', phone:'الهاتف (اختياري)',
     forgot:'نسيت كلمة المرور؟', resend:'إعادة إرسال رابط التأكيد', logout:'تسجيل الخروج',
     save2:'حفظ', search:'بحث', print:'طباعة', copy:'نسخ',
-    home:'الرئيسية', library:'مكتبتي', catalog:'الكتالوج', profile:'ملفي',
+    home:'الرئيسية', catalog:'الكتالوج', profile:'ملفي',
     officerHome:'غرفة التسجيل', findStudent:'البحث عن طالب', confirmPay:'تأكيد دفعة',
     issueCode:'إصدار أكواد', myCodes:'أكوادي', adminHome:'لوحة القياس', users:'المستخدمون',
     payments:'المدفوعات', audit:'سجل التدقيق',
@@ -132,10 +140,10 @@ var I18N = {
     batchSize:'عدد الأكواد (حتى 500)', maxUses:'أقصى عدد استخدامات', validUntil:'صالح حتى تاريخ',
     accessDays:'مدة الوصول (أيام)', issue:'إصدار الأكواد', issuedCodes:'الأكواد الصادرة — تظهر مرة واحدة فقط',
     printAll:'طباعة الكل', activateCode:'كود التفعيل', activateBtn:'تفعيل الكود', activated:'تم التفعيل بنجاح',
-    progress:'التقدم', lessons:'دروس', open:'فتح', locked:'مقفول', preview:'معاينة مجانية',
-    notFound:'لا توجد نتائج', role:'الدور', status:'الحالة', createdAt:'تاريخ التسجيل',
-    actions:'إجراءات', grant:'منح', revoke:'سحب', suspend:'تجميد', activate2:'تنشيط', back:'رجوع',
-    total:'الإجمالي', dark:'ليلي', light:'نهاري', lang:'English', subject:'المادة', unit:'الوحدة',
+    lessons:'دروس', open:'فتح', preview:'معاينة مجانية', notFound:'لا توجد نتائج',
+    status:'الحالة', createdAt:'تاريخ التسجيل', actions:'إجراءات', grant:'منح', revoke:'سحب',
+    suspend:'تجميد', activate2:'تنشيط', back:'رجوع', total:'الإجمالي',
+    dark:'ليلي', light:'نهاري', lang:'English', subject:'المادة',
     markDone:'إكمال الدرس', contentSoon:'محتوى هذا الدرس يُضاف من لوحة المدرس.',
     noLibrary:'لا توجد كورسات مفعلة بعد. فعّل كوداً للبدء.', payFirst:'سجّل الدفع أولاً ثم أصدر الكود.',
     noCourses:'لا توجد كورسات منشورة', err:'حدث خطأ', copied:'تم النسخ', minutes:'دقيقة',
@@ -143,13 +151,13 @@ var I18N = {
   },
   en:{
     appName:'Al-Manarah', tagline:'Learn with clarity',
-    setupTitle:'Connect Al-Manarah to your project', setupHint:'Open Supabase → Project Settings → API and copy both values.',
+    setupTitle:'Connect Al-Manarah', setupHint:'Open Supabase, Project Settings, API and copy both values.',
     url:'Project URL', anon:'Publishable key', save:'Save & start', test:'Test connection',
     setupNote:'This key is safe to ship — all security is enforced by the database.',
     login:'Log in', signup:'Sign up', email:'Email', password:'Password', pwd2:'Confirm password',
     name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?', resend:'Resend confirmation',
     logout:'Log out', save2:'Save', search:'Search', print:'Print', copy:'Copy',
-    home:'Home', library:'My learning', catalog:'Catalog', profile:'Profile',
+    home:'Home', catalog:'Catalog', profile:'Profile',
     officerHome:'Enrollment desk', findStudent:'Find student', confirmPay:'Confirm payment',
     issueCode:'Issue codes', myCodes:'My codes', adminHome:'Dashboard', users:'Users',
     payments:'Payments', audit:'Audit log',
@@ -160,10 +168,10 @@ var I18N = {
     batchSize:'Number of codes (max 500)', maxUses:'Max uses', validUntil:'Valid until',
     accessDays:'Access days', issue:'Issue codes', issuedCodes:'Issued codes — shown once only',
     printAll:'Print all', activateCode:'Activation code', activateBtn:'Activate', activated:'Activated successfully',
-    progress:'Progress', lessons:'lessons', open:'Open', locked:'Locked', preview:'Free preview',
-    notFound:'No results', role:'Role', status:'Status', createdAt:'Joined', actions:'Actions',
-    grant:'Grant', revoke:'Revoke', suspend:'Suspend', activate2:'Activate', back:'Back',
-    total:'Total', dark:'Dark', light:'Light', lang:'العربية', subject:'Subject', unit:'Unit',
+    lessons:'lessons', open:'Open', preview:'Free preview', notFound:'No results',
+    status:'Status', createdAt:'Joined', actions:'Actions', grant:'Grant', revoke:'Revoke',
+    suspend:'Suspend', activate2:'Activate', back:'Back', total:'Total',
+    dark:'Dark', light:'Light', lang:'العربية', subject:'Subject',
     markDone:'Mark complete', contentSoon:'This lesson content is added from the instructor dashboard.',
     noLibrary:'No active courses yet. Activate a code to start.', payFirst:'Record the payment first, then issue the code.',
     noCourses:'No published courses', err:'Something went wrong', copied:'Copied', minutes:'min',
@@ -193,10 +201,10 @@ function toast(msg, kind){
   var d = document.createElement('div');
   d.className = 'toast ' + (kind||'');
   d.textContent = msg;
-  $('#toasts').appendChild(d);
+  document.getElementById('toasts').appendChild(d);
   setTimeout(function(){
     d.style.opacity='0'; d.style.transition='opacity .4s';
-    setTimeout(function(){ d.remove(); }, 400);
+    setTimeout(function(){ if(d.parentNode) d.parentNode.removeChild(d); }, 400);
   }, 5000);
 }
 
@@ -205,7 +213,6 @@ var ERRS = {
   student_not_found:'الطالب غير مسجّل — تأكد من البريد',
   student_not_active:'حساب الطالب غير نشط — راجع لوحة الإدارة',
   email_not_confirmed:'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد.',
-  email_not_confirmed_signup:'بريد الحساب غير مؤكد بعد',
   forbidden:'لا تملك صلاحية تنفيذ هذه العملية',
   code_invalid:'كود غير صحيح',
   code_already_used:'هذا الكود مستخدم بالفعل',
@@ -221,7 +228,6 @@ var ERRS = {
   invalid_grant:'البريد أو كلمة المرور غير صحيحة',
   immutable_record:'سجل محمي — لا يمكن التعديل',
   user_already_exists:'هذا البريد مسجّل بالفعل — جرّب تسجيل الدخول',
-  signup_disabled:'التسجيل مغلق حالياً من إعدادات Supabase',
   weak_password:'كلمة المرور ضعيفة — استخدم 8 أحرف على الأقل'
 };
 function errMsg(e){
@@ -232,7 +238,7 @@ function errMsg(e){
   if (/invalid login/i.test(m)) return 'البريد أو كلمة المرور غير صحيحة';
   if (/user not found/i.test(m)) return 'مافيش حساب بالبريد ده — سجّل حساب جديد الأول';
   if (/does not exist|pgrst205/i.test(m)) return 'الجداول مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase';
-  if (m.indexOf('HTTP 401')===0 || m.indexOf('HTTP 403')===0) return 'المفتاح غير صحيح أو منتهي — راجع Project URL و Publishable key';
+  if (m.indexOf('HTTP 401')===0 || m.indexOf('HTTP 403')===0) return 'المفتاح غير صحيح أو منتهي';
   return m || t('err');
 }
 
@@ -293,11 +299,10 @@ var db = {
   rpc:    function(name,args){ return api('/rest/v1/rpc/'+name,{method:'POST',body:args||{}}); }
 };
 function inList(arr){ return '(' + arr.join(',') + ')'; }
-function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
 
 /* ============================== شاشة الربط ============================== */
 function renderSetup(){
-  $('#app').innerHTML = `
+  setHTML($('#app'), `
   <div class="center">
     <div class="hero" style="text-align:center">
       <div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>${esc(t('appName'))}</div>
@@ -319,24 +324,24 @@ function renderSetup(){
         <button class="btn" id="s_test">${esc(t('test'))}</button>
       </div>
     </div>
-  </div>`;
+  </div>`);
 
-  $('#s_test').onclick = function(){
+  on($('#s_test'), 'click', function(){
     var u = $('#s_url').value.trim();
     var k = $('#s_key').value.trim();
     var box = $('#setup_diag');
-    if (!u || !k) { box.innerHTML = '<div class="diag">املأ الخانتين أولاً</div>'; return; }
-    box.innerHTML = '<div class="mut">جارٍ الاختبار…</div>';
+    if (!u || !k) { setHTML(box, '<div class="diag">املأ الخانتين أولاً</div>'); return; }
+    setHTML(box, '<div class="mut">جارٍ الاختبار…</div>');
     fetch(u.replace(/\/+$/,'') + '/rest/v1/app_settings?select=key', { headers:{'apikey':k} })
       .then(function(r){ return r.text().then(function(x){
-        box.innerHTML = r.ok
+        setHTML(box, r.ok
           ? '<div class="diag ok">الاتصال ناجح — القيمتين صح. دوس حفظ وبدء.</div>'
-          : '<div class="diag">الاتصال فشل (' + r.status + ')<br>' + esc(x.slice(0,400)) + '</div>';
+          : '<div class="diag">الاتصال فشل (' + r.status + ')<br>' + esc(x.slice(0,400)) + '</div>');
       });})
-      .catch(function(e){ box.innerHTML = '<div class="diag">فشل الوصول: ' + esc(String(e)) + '</div>'; });
-  };
+      .catch(function(e){ setHTML(box, '<div class="diag">فشل الوصول: ' + esc(String(e)) + '</div>'); });
+  });
 
-  $('#s_go').onclick = function(){
+  on($('#s_go'), 'click', function(){
     var url = $('#s_url').value.trim().replace(/\/+$/,'');
     var anon = $('#s_key').value.trim();
     if (!url || !anon) return toast(t('err'),'bad');
@@ -346,7 +351,7 @@ function renderSetup(){
     LS.set('mn_cfg', { url:url, anon:anon });
     cfg = { url:url, anon:anon };
     boot();
-  };
+  });
 }
 
 /* ============================== شاشة الدخول ============================== */
@@ -356,8 +361,17 @@ function renderAuth(){
   var resendBox = (mode==='login' && S.authUnconfirmed)
     ? '<div class="row" style="margin-top:8px"><button class="btn btn-s" id="a_resend">' + esc(t('resend')) + '</button></div>'
     : '';
+  var signupFields = (mode==='signup')
+    ? '<label>' + esc(t('name')) + '</label><input id="a_name">'
+    : '';
+  var signupExtra = (mode==='signup')
+    ? '<label>' + esc(t('pwd2')) + '</label><input id="a_pwd2" type="password"><label>' + esc(t('phone')) + '</label><input id="a_phone">'
+    : '';
+  var forgotBox = (mode==='login')
+    ? '<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">' + esc(t('forgot')) + '</button></div>'
+    : '';
 
-  $('#app').innerHTML = `
+  setHTML($('#app'), `
   <div class="center">
     <div class="hero" style="text-align:center">
       <div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>${esc(t('appName'))}</div>
@@ -369,24 +383,24 @@ function renderAuth(){
         <button class="btn btn-s ${mode==='login'?'btn-p':''}" id="m_login">${esc(t('login'))}</button>
         <button class="btn btn-s ${mode==='signup'?'btn-p':''}" id="m_signup">${esc(t('signup'))}</button>
       </div>
-      ${mode==='signup' ? '<label>'+esc(t('name'))+'</label><input id="a_name">' : ''}
+      ${signupFields}
       <label>${esc(t('email'))}</label>
       <input id="a_email" type="email" autocomplete="email">
       <label>${esc(t('password'))}</label>
       <input id="a_pwd" type="password">
-      ${mode==='signup' ? '<label>'+esc(t('pwd2'))+'</label><input id="a_pwd2" type="password"><label>'+esc(t('phone'))+'</label><input id="a_phone">' : ''}
+      ${signupExtra}
       <div class="row" style="margin-top:16px">
         <button class="btn btn-p grow" id="a_go">${esc(mode==='login' ? t('login') : t('signup'))}</button>
       </div>
       ${resendBox}
-      ${mode==='login' ? '<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">'+esc(t('forgot'))+'</button></div>' : ''}
+      ${forgotBox}
     </div>
-  </div>`;
+  </div>`);
 
-  $('#m_login').onclick  = function(){ S.authMode='login';  S.authError=null; S.authUnconfirmed=false; renderAuth(); };
-  $('#m_signup').onclick = function(){ S.authMode='signup'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
+  on($('#m_login'),  'click', function(){ S.authMode='login';  S.authError=null; S.authUnconfirmed=false; renderAuth(); });
+  on($('#m_signup'), 'click', function(){ S.authMode='signup'; S.authError=null; S.authUnconfirmed=false; renderAuth(); });
 
-  $('#a_go').onclick = function(){
+  on($('#a_go'), 'click', function(){
     var email = $('#a_email').value.trim();
     var pwd   = $('#a_pwd').value;
     S.authError = null; S.authUnconfirmed = false;
@@ -415,26 +429,23 @@ function renderAuth(){
     } else {
       Auth.signIn(email, pwd).then(done).catch(fail);
     }
-  };
+  });
 
-  if (mode === 'login'){
-    $('#a_forgot').onclick = function(){
-      var email = $('#a_email').value.trim();
-      if (!email) { S.authError = 'اكتب بريدك الأول'; renderAuth(); return; }
-      Auth.recover(email)
-        .then(function(){ S.authError = 'أُرسل رابط استعادة كلمة المرور إلى بريدك.'; renderAuth(); })
-        .catch(function(e){ S.authError = errMsg(e); renderAuth(); });
-    };
-    if ($('#a_resend')){
-      $('#a_resend').onclick = function(){
-        var email = $('#a_email').value.trim();
-        if (!email) return;
-        Auth.resend(email)
-          .then(function(){ toast('أُرسل رابط التأكيد — شوف بريدك','ok'); })
-          .catch(function(e){ toast(errMsg(e),'bad'); });
-      };
-    }
-  }
+  on($('#a_forgot'), 'click', function(){
+    var email = $('#a_email').value.trim();
+    if (!email) { S.authError = 'اكتب بريدك الأول'; renderAuth(); return; }
+    Auth.recover(email)
+      .then(function(){ S.authError = 'أُرسل رابط استعادة كلمة المرور إلى بريدك.'; renderAuth(); })
+      .catch(function(e){ S.authError = errMsg(e); renderAuth(); });
+  });
+
+  on($('#a_resend'), 'click', function(){
+    var email = $('#a_email').value.trim();
+    if (!email) return;
+    Auth.resend(email)
+      .then(function(){ toast('أُرسل رابط التأكيد — شوف بريدك','ok'); })
+      .catch(function(e){ toast(errMsg(e),'bad'); });
+  });
 }
 
 /* ============================== الهيكل ============================== */
@@ -456,9 +467,9 @@ function shell(nav, view){
   </div>`;
 }
 function bindChrome(){
-  $('#b_lang').onclick  = function(){ lang = (lang==='ar'?'en':'ar'); LS.set('mn_lang',lang); applyChrome(); render(); };
-  $('#b_theme').onclick = function(){ theme = (theme==='dark'?'light':'dark'); LS.set('mn_theme',theme); applyChrome(); render(); };
-  $('#b_out').onclick   = function(){ Auth.logout().then(function(){ location.hash=''; render(); }); };
+  on($('#b_lang'),  'click', function(){ lang = (lang==='ar'?'en':'ar'); LS.set('mn_lang',lang); applyChrome(); render(); });
+  on($('#b_theme'), 'click', function(){ theme = (theme==='dark'?'light':'dark'); LS.set('mn_theme',theme); applyChrome(); render(); });
+  on($('#b_out'),   'click', function(){ Auth.logout().then(function(){ location.hash=''; render(); }); });
 }
 function loadMe(){
   var saved = LS.get('mn_session', null);
@@ -497,39 +508,29 @@ function viewStudentHome(){
         : '<span class="tag ok">دائم</span>';
       var rows = c.subs.map(function(s){
         var st = (lang==='ar' ? s.subject_title_ar : (s.subject_title_en || s.subject_title_ar));
-        return `
-        <div class="lesson">
-          <div class="grow"><b>${esc(st)}</b>
-            <div class="mut">${num(s.lessons_done)} / ${num(s.lessons_total)} ${esc(t('lessons'))}</div>
-          </div>
-          <a class="btn btn-s btn-p" href="#/subject/${s.subject_id}">${esc(t('open'))}</a>
-        </div>`;
+        return '<div class="lesson"><div class="grow"><b>' + esc(st) + '</b>' +
+          '<div class="mut">' + num(s.lessons_done) + ' / ' + num(s.lessons_total) + ' ' + esc(t('lessons')) + '</div></div>' +
+          '<a class="btn btn-s btn-p" href="#/subject/' + s.subject_id + '">' + esc(t('open')) + '</a></div>';
       }).join('');
-      return `
-      <div class="card">
-        <div class="row"><h3 class="grow">${esc(title)}</h3>${expTag}</div>
-        <div class="row" style="margin:8px 0"><div class="bar grow"><i style="width:${p}%"></i></div><span class="mut">${p}%</span></div>
-        ${rows}
-      </div>`;
+      return '<div class="card"><div class="row"><h3 class="grow">' + esc(title) + '</h3>' + expTag + '</div>' +
+        '<div class="row" style="margin:8px 0"><div class="bar grow"><i style="width:' + p + '%"></i></div><span class="mut">' + p + '%</span></div>' +
+        rows + '</div>';
     }).join('');
 
-    return `
-    <h1>${esc(t('welcome'))}، ${esc(S.profile && S.profile.full_name)}</h1>
-    <p class="mut">${esc(t('tagline'))}</p>
-    <div class="card">
-      <h2>${esc(t('activateCode'))}</h2>
-      <div class="row">
-        <input id="cd" class="grow mono" placeholder="XXXXXXXXXXXX" maxlength="24" style="text-transform:uppercase">
-        <button class="btn btn-g" id="cd_go">${esc(t('activateBtn'))}</button>
-      </div>
-      <p class="mut" style="margin-top:8px">${esc(t('payFirst'))}</p>
-    </div>
-    <h2 style="margin-top:18px">${esc(t('myLearning'))}</h2>
-    ${cards || '<div class="card mut">' + esc(t('noLibrary')) + '</div>'}`;
+    return '<h1>' + esc(t('welcome')) + '، ' + esc(S.profile && S.profile.full_name) + '</h1>' +
+      '<p class="mut">' + esc(t('tagline')) + '</p>' +
+      '<div class="card"><h2>' + esc(t('activateCode')) + '</h2>' +
+      '<div class="row"><input id="cd" class="grow mono" placeholder="XXXXXXXXXXXX" maxlength="24" style="text-transform:uppercase">' +
+      '<button class="btn btn-g" id="cd_go">' + esc(t('activateBtn')) + '</button></div>' +
+      '<p class="mut" style="margin-top:8px">' + esc(t('payFirst')) + '</p></div>' +
+      '<h2 style="margin-top:18px">' + esc(t('myLearning')) + '</h2>' +
+      (cards || '<div class="card mut">' + esc(t('noLibrary')) + '</div>');
   });
 }
 function bindStudentHome(){
-  $('#cd_go').onclick = function(){
+  var b = $('#cd_go');
+  if (!b) return;
+  b.onclick = function(){
     var code = $('#cd').value.trim();
     if (!code) return toast(t('err'),'bad');
     db.rpc('activate_code', { p_code:code })
@@ -544,17 +545,14 @@ function viewCatalog(){
     var cards = courses.map(function(c){
       var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
       var desc  = String((lang==='ar' ? c.desc_ar : (c.desc_en || c.desc_ar))).slice(0,110);
-      return `
-      <a class="card" href="#/course/${c.id}">
-        <span class="tag gold">${esc(c.level)}</span>
-        <h3 style="margin-top:8px">${esc(title)}</h3>
-        <p class="mut">${esc(desc)}…</p>
-        <div class="row"><span class="tag">${c.price} ${esc(c.currency)}</span></div>
-      </a>`;
+      return '<a class="card" href="#/course/' + c.id + '">' +
+        '<span class="tag gold">' + esc(c.level) + '</span>' +
+        '<h3 style="margin-top:8px">' + esc(title) + '</h3>' +
+        '<p class="mut">' + esc(desc) + '…</p>' +
+        '<div class="row"><span class="tag">' + c.price + ' ' + esc(c.currency) + '</span></div></a>';
     }).join('');
-    return `
-    <h1>${esc(t('catalog'))}</h1>
-    <div class="grid">${cards || '<div class="card mut">' + esc(t('noCourses')) + '</div>'}</div>`;
+    return '<h1>' + esc(t('catalog')) + '</h1><div class="grid">' +
+      (cards || '<div class="card mut">' + esc(t('noCourses')) + '</div>') + '</div>';
   });
 }
 
@@ -576,22 +574,15 @@ function viewCourse(id){
       var has = owned[s.id] || ownedCourse;
       var btn = has
         ? '<a class="btn btn-s btn-p" href="#/subject/' + s.id + '">' + esc(t('open')) + '</a>'
-        : '<span class="tag lock">مقفول</span>';
-      return `
-      <div class="lesson">
-        <div class="grow"><b>${esc(st)}</b></div>
-        ${btn}
-      </div>`;
+        : '<span class="tag">مقفول</span>';
+      return '<div class="lesson"><div class="grow"><b>' + esc(st) + '</b></div>' + btn + '</div>';
     }).join('');
-    return `
-    <div class="row"><a class="btn btn-s" href="#/catalog">← ${esc(t('back'))}</a></div>
-    <div class="card" style="margin-top:12px">
-      <span class="tag gold">${esc(c.level)} · ${c.price} ${esc(c.currency)}</span>
-      <h1 style="margin-top:8px">${esc(title)}</h1>
-      <p class="mut">${esc(desc)}</p>
-    </div>
-    <h2>${esc(t('subject'))}</h2>
-    ${rows}`;
+    return '<div class="row"><a class="btn btn-s" href="#/catalog">← ' + esc(t('back')) + '</a></div>' +
+      '<div class="card" style="margin-top:12px">' +
+      '<span class="tag gold">' + esc(c.level) + ' · ' + c.price + ' ' + esc(c.currency) + '</span>' +
+      '<h1 style="margin-top:8px">' + esc(title) + '</h1>' +
+      '<p class="mut">' + esc(desc) + '</p></div>' +
+      '<h2>' + esc(t('subject')) + '</h2>' + rows;
   });
 }
 
@@ -603,7 +594,8 @@ function viewSubject(id){
     var s = res[0], units = res[1] || [];
     if (!s) return '<div class="card">' + esc(t('notFound')) + '</div>';
     if (!units.length) return '<div class="card mut">لا توجد وحدات بعد</div>';
-    return db.select('lessons','unit_id=in.' + inList(units.map(function(u){ return u.id; })) + '&status=eq.published&order=sort_order')
+    var ids = inList(units.map(function(u){ return u.id; }));
+    return db.select('lessons','unit_id=in.' + ids + '&status=eq.published&order=sort_order')
       .then(function(lessons){
         lessons = lessons || [];
         return db.select('lesson_progress').then(function(prog){
@@ -618,26 +610,16 @@ function viewSubject(id){
           var rows = lessons.map(function(l){
             var d = pm[l.id];
             var lt = (lang==='ar' ? l.title_ar : (l.title_en || l.title_ar));
-            return `
-            <div class="lesson">
-              <div class="grow"><b>${esc(lt)}</b>
-                <div class="mut">${esc(un[l.unit_id] || '')} · ${Math.round(l.duration_seconds/60)} ${esc(t('minutes'))}</div>
-              </div>
-              ${l.is_free_preview ? '<span class="tag ok">' + esc(t('preview')) + '</span>' : ''}
-              ${(d && d.completed_at) ? '<span class="tag ok">تم</span>' : ''}
-              <a class="btn btn-s ${(d && d.completed_at) ? '' : 'btn-p'}" href="#/lesson/${l.id}">${esc(t('open'))}</a>
-            </div>`;
+            return '<div class="lesson"><div class="grow"><b>' + esc(lt) + '</b>' +
+              '<div class="mut">' + esc(un[l.unit_id] || '') + ' · ' + Math.round(l.duration_seconds/60) + ' ' + esc(t('minutes')) + '</div></div>' +
+              (l.is_free_preview ? '<span class="tag ok">' + esc(t('preview')) + '</span>' : '') +
+              ((d && d.completed_at) ? '<span class="tag ok">تم</span>' : '') +
+              '<a class="btn btn-s ' + ((d && d.completed_at) ? '' : 'btn-p') + '" href="#/lesson/' + l.id + '">' + esc(t('open')) + '</a></div>';
           }).join('');
-          return `
-          <div class="row"><a class="btn btn-s" href="#/course/${s.course_id}">← ${esc(t('back'))}</a></div>
-          <div class="card" style="margin-top:12px">
-            <h1>${esc(title)}</h1>
-            <div class="row" style="margin-top:8px">
-              <div class="bar grow"><i style="width:${pct}%"></i></div>
-              <span class="mut">${done}/${lessons.length}</span>
-            </div>
-          </div>
-          ${rows}`;
+          return '<div class="row"><a class="btn btn-s" href="#/course/' + s.course_id + '">← ' + esc(t('back')) + '</a></div>' +
+            '<div class="card" style="margin-top:12px"><h1>' + esc(title) + '</h1>' +
+            '<div class="row" style="margin-top:8px"><div class="bar grow"><i style="width:' + pct + '%"></i></div>' +
+            '<span class="mut">' + done + '/' + lessons.length + '</span></div></div>' + rows;
         });
       });
   });
@@ -652,26 +634,17 @@ function viewLesson(id){
     var atts = '';
     if (c && c.attachments && c.attachments.length){
       atts = '<h3>مرفقات</h3>' + c.attachments.map(function(a){
-        return `
-        <div class="lesson">
-          <span class="grow">مرفق: ${esc(a.name || a.url)}</span>
-          <a class="btn btn-s" target="_blank" href="${esc(a.url)}">فتح</a>
-        </div>`;
+        return '<div class="lesson"><span class="grow">مرفق: ' + esc(a.name || a.url) + '</span>' +
+          '<a class="btn btn-s" target="_blank" href="' + esc(a.url) + '">فتح</a></div>';
       }).join('');
     }
     var body = locked
       ? '<div class="tag warn" style="margin-top:10px">مقفول</div><p class="mut" style="margin-top:10px">' + esc(t('contentSoon')) + '</p>'
-      : '<div class="mut" style="margin:12px 0;padding:20px;border:1px dashed var(--bd);border-radius:10px">' + esc(t('contentSoon')) + '</div>'
-        + (c.body ? '<p>' + esc(c.body) + '</p>' : '') + atts;
-    return `
-    <div class="row"><a class="btn btn-s" href="javascript:history.back()">← ${esc(t('back'))}</a></div>
-    <div class="card" style="margin-top:12px">
-      <h1>${esc(title)}</h1>
-      ${body}
-      <div class="row" style="margin-top:14px">
-        <button class="btn btn-p" id="mk_done">${esc(t('markDone'))}</button>
-      </div>
-    </div>`;
+      : '<div class="mut" style="margin:12px 0;padding:20px;border:1px dashed var(--bd);border-radius:10px">' + esc(t('contentSoon')) + '</div>' +
+        (c.body ? '<p>' + esc(c.body) + '</p>' : '') + atts;
+    return '<div class="row"><a class="btn btn-s" href="javascript:history.back()">← ' + esc(t('back')) + '</a></div>' +
+      '<div class="card" style="margin-top:12px"><h1>' + esc(title) + '</h1>' + body +
+      '<div class="row" style="margin-top:14px"><button class="btn btn-p" id="mk_done">' + esc(t('markDone')) + '</button></div></div>';
   });
 }
 function bindLesson(id){
@@ -685,30 +658,25 @@ function bindLesson(id){
 }
 
 function viewProfile(){
-  return `
-  <h1>${esc(t('profile'))}</h1>
-  <div class="card">
-    <label>${esc(t('name'))}</label>
-    <input id="p_name" value="${esc(S.profile && S.profile.full_name)}">
-    <label>${esc(t('email'))}</label>
-    <input value="${esc(S.session && S.session.user && S.session.user.email)}" disabled>
-    <div class="row" style="margin-top:14px"><button class="btn btn-p" id="p_save">${esc(t('save2'))}</button></div>
-  </div>
-  <div class="card">
-    <h2>${esc(t('password'))}</h2>
-    <label>${esc(t('password'))}</label>
-    <input id="p_new" type="password">
-    <div class="row" style="margin-top:12px"><button class="btn" id="p_pwd">${esc(t('save2'))}</button></div>
-  </div>`;
+  return '<h1>' + esc(t('profile')) + '</h1>' +
+    '<div class="card">' +
+    '<label>' + esc(t('name')) + '</label><input id="p_name" value="' + esc(S.profile && S.profile.full_name) + '">' +
+    '<label>' + esc(t('email')) + '</label><input value="' + esc(S.session && S.session.user && S.session.user.email) + '" disabled>' +
+    '<div class="row" style="margin-top:14px"><button class="btn btn-p" id="p_save">' + esc(t('save2')) + '</button></div></div>' +
+    '<div class="card"><h2>' + esc(t('password')) + '</h2>' +
+    '<label>' + esc(t('password')) + '</label><input id="p_new" type="password">' +
+    '<div class="row" style="margin-top:12px"><button class="btn" id="p_pwd">' + esc(t('save2')) + '</button></div></div>';
 }
 function bindProfile(){
-  $('#p_save').onclick = function(){
+  var save = $('#p_save');
+  if (save) save.onclick = function(){
     var name = $('#p_name').value.trim();
     db.update('profiles','id=eq.'+S.session.user.id, { full_name:name, updated_at:new Date().toISOString() })
       .then(function(){ toast('تم','ok'); return loadMe().then(render); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
-  $('#p_pwd').onclick = function(){
+  var pwd = $('#p_pwd');
+  if (pwd) pwd.onclick = function(){
     var p = $('#p_new').value;
     if (p.length < 8) return toast('كلمة المرور 8 أحرف على الأقل','bad');
     Auth.update({ password:p })
@@ -748,23 +716,17 @@ function viewDesk(){
   return p.then(function(d){
     d = d || {};
     function k(l,v){ return '<div class="kpi"><span class="mut">' + esc(l) + '</span><b>' + esc(v==null?0:v) + '</b></div>'; }
-    return `
-    <h1>${esc(t('officerHome'))}</h1>
-    <div class="grid">
-      ${k(t('students'), d.students_total)}
-      ${k(t('paymentsCount'), d.payments_count)}
-      ${k(t('total'), d.payments_total)}
-      ${k(t('myCodes'), d.codes_used || d.codes || 0)}
-    </div>
-    <div class="card">
-      <h2>${esc(t('findStudent'))}</h2>
-      <p class="mut">${esc(t('payFirst'))}</p>
-      <div class="row" style="margin-top:10px">
-        <a class="btn btn-p" href="#/find">${esc(t('search'))}</a>
-        <a class="btn" href="#/issue">${esc(t('issueCode'))}</a>
-        <a class="btn" href="#/mycodes">${esc(t('myCodes'))}</a>
-      </div>
-    </div>`;
+    return '<h1>' + esc(t('officerHome')) + '</h1><div class="grid">' +
+      k(t('students'), d.students_total) +
+      k(t('paymentsCount'), d.payments_count) +
+      k(t('total'), d.payments_total) +
+      k(t('myCodes'), d.codes_used || d.codes || 0) +
+      '</div><div class="card"><h2>' + esc(t('findStudent')) + '</h2>' +
+      '<p class="mut">' + esc(t('payFirst')) + '</p>' +
+      '<div class="row" style="margin-top:10px">' +
+      '<a class="btn btn-p" href="#/find">' + esc(t('search')) + '</a>' +
+      '<a class="btn" href="#/issue">' + esc(t('issueCode')) + '</a>' +
+      '<a class="btn" href="#/mycodes">' + esc(t('myCodes')) + '</a></div></div>';
   });
 }
 
@@ -776,46 +738,32 @@ function viewFind(){
       card = '<div class="card"><span class="tag bad">' + esc(t('notFound')) + '</span></div>';
     } else {
       var ent = (res.enrollments || []).map(function(e){
-        return `
-        <tr>
-          <td>${esc(e.course || '')}</td>
-          <td>${esc(e.subject || '—')}</td>
-          <td><span class="tag ${e.status==='active'?'ok':'bad'}">${esc(e.status)}</span></td>
-          <td class="mono">${e.expires_at ? esc(new Date(e.expires_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) : '—'}</td>
-        </tr>`;
+        return '<tr><td>' + esc(e.course || '') + '</td><td>' + esc(e.subject || '—') + '</td>' +
+          '<td><span class="tag ' + (e.status==='active'?'ok':'bad') + '">' + esc(e.status) + '</span></td>' +
+          '<td class="mono">' + (e.expires_at ? esc(new Date(e.expires_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) : '—') + '</td></tr>';
       }).join('');
-      card = `
-      <div class="card">
-        <div class="row">
-          <h2 class="grow">${esc(res.name)}</h2>
-          <span class="tag ${res.status==='active'?'ok':'warn'}">${esc(res.status)}</span>
-          ${res.email_confirmed ? '' : '<span class="tag warn">بريد غير مؤكد</span>'}
-        </div>
-        <p class="mut mono">${esc(res.email_masked)} · ${esc(res.phone_masked || '—')} · ${esc(new Date(res.created_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB'))}</p>
-        <h3 style="margin-top:14px">التسجيلات</h3>
-        <table>
-          <thead><tr><th>${esc(t('course'))}</th><th>${esc(t('subject'))}</th><th>${esc(t('status'))}</th><th>ينتهي</th></tr></thead>
-          <tbody>${ent || '<tr><td colspan="4" class="mut">—</td></tr>'}</tbody>
-        </table>
-        <div class="row" style="margin-top:14px">
-          <a class="btn btn-g" href="#/pay?email=${encodeURIComponent(S.findEmail || '')}">${esc(t('confirmPay'))}</a>
-        </div>
-      </div>`;
+      card = '<div class="card"><div class="row">' +
+        '<h2 class="grow">' + esc(res.name) + '</h2>' +
+        '<span class="tag ' + (res.status==='active'?'ok':'warn') + '">' + esc(res.status) + '</span>' +
+        (res.email_confirmed ? '' : '<span class="tag warn">بريد غير مؤكد</span>') +
+        '</div><p class="mut mono">' + esc(res.email_masked) + ' · ' + esc(res.phone_masked || '—') + ' · ' +
+        esc(new Date(res.created_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) + '</p>' +
+        '<h3 style="margin-top:14px">التسجيلات</h3>' +
+        '<table><thead><tr><th>' + esc(t('course')) + '</th><th>' + esc(t('subject')) + '</th><th>' + esc(t('status')) + '</th><th>ينتهي</th></tr></thead>' +
+        '<tbody>' + (ent || '<tr><td colspan="4" class="mut">—</td></tr>') + '</tbody></table>' +
+        '<div class="row" style="margin-top:14px"><a class="btn btn-g" href="#/pay?email=' + encodeURIComponent(S.findEmail || '') + '">' + esc(t('confirmPay')) + '</a></div></div>';
     }
   }
-  return `
-  <h1>${esc(t('findStudent'))}</h1>
-  <div class="card">
-    <div class="row">
-      <input id="f_email" class="grow" type="email" placeholder="student@example.com" value="${esc(S.findEmail || '')}">
-      <button class="btn btn-p" id="f_go">${esc(t('search'))}</button>
-    </div>
-    <p class="mut" style="margin-top:6px">البحث بالبريد المسجّل فقط</p>
-  </div>
-  ${card}`;
+  return '<h1>' + esc(t('findStudent')) + '</h1>' +
+    '<div class="card"><div class="row">' +
+    '<input id="f_email" class="grow" type="email" placeholder="student@example.com" value="' + esc(S.findEmail || '') + '">' +
+    '<button class="btn btn-p" id="f_go">' + esc(t('search')) + '</button></div>' +
+    '<p class="mut" style="margin-top:6px">البحث بالبريد المسجّل فقط</p></div>' + card;
 }
 function bindFind(){
-  $('#f_go').onclick = function(){
+  var b = $('#f_go');
+  if (!b) return;
+  b.onclick = function(){
     var email = $('#f_email').value.trim();
     if (!email) return toast(t('err'),'bad');
     S.findEmail = email;
@@ -833,26 +781,22 @@ function viewPay(){
       var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
       return '<option value="' + c.id + '">' + esc(title) + ' — ' + c.price + ' ' + esc(c.currency) + '</option>';
     }).join('');
-    return `
-    <h1>${esc(t('confirmPay'))}</h1>
-    <div class="card">
-      <label>${esc(t('studentEmail'))}</label>
-      <input id="pay_email" type="email" value="${esc(pre)}">
-      <label>${esc(t('course'))}</label>
-      <select id="pay_course">${opts}</select>
-      <div class="row">
-        <div class="grow"><label>${esc(t('amount'))}</label><input id="pay_amount" type="number" min="0" step="0.01"></div>
-        <div class="grow"><label>${esc(t('currency'))}</label><input id="pay_currency" value="EGP"></div>
-      </div>
-      <label>${esc(t('receipt'))}</label><input id="pay_receipt">
-      <label>${esc(t('notes'))}</label><input id="pay_notes">
-      <div class="row" style="margin-top:16px"><button class="btn btn-p" id="pay_go">${esc(t('confirmPayment'))}</button></div>
-    </div>
-    <div class="card hidden" id="pay_next"></div>`;
+    return '<h1>' + esc(t('confirmPay')) + '</h1><div class="card">' +
+      '<label>' + esc(t('studentEmail')) + '</label><input id="pay_email" type="email" value="' + esc(pre) + '">' +
+      '<label>' + esc(t('course')) + '</label><select id="pay_course">' + opts + '</select>' +
+      '<div class="row">' +
+      '<div class="grow"><label>' + esc(t('amount')) + '</label><input id="pay_amount" type="number" min="0" step="0.01"></div>' +
+      '<div class="grow"><label>' + esc(t('currency')) + '</label><input id="pay_currency" value="EGP"></div></div>' +
+      '<label>' + esc(t('receipt')) + '</label><input id="pay_receipt">' +
+      '<label>' + esc(t('notes')) + '</label><input id="pay_notes">' +
+      '<div class="row" style="margin-top:16px"><button class="btn btn-p" id="pay_go">' + esc(t('confirmPayment')) + '</button></div>' +
+      '</div><div class="card hidden" id="pay_next"></div>';
   });
 }
 function bindPay(){
-  $('#pay_go').onclick = function(){
+  var b = $('#pay_go');
+  if (!b) return;
+  b.onclick = function(){
     var email = $('#pay_email').value.trim();
     var amt = num($('#pay_amount').value);
     if (!email || !amt) return toast(t('err'),'bad');
@@ -866,14 +810,12 @@ function bindPay(){
     }).then(function(d){
       toast(t('paymentDone'),'ok');
       var box = $('#pay_next');
+      if (!box) return;
       box.classList.remove('hidden');
-      box.innerHTML = `
-        <h2>${esc(t('paymentDone'))}</h2>
-        <p class="mut">${esc(d.student_name)}</p>
-        <div class="row" style="margin-top:10px">
-          <a class="btn btn-g" href="#/issue?pay=${d.payment_id}">${esc(t('issueCode'))}</a>
-          <a class="btn" href="#/find">${esc(t('findStudent'))}</a>
-        </div>`;
+      box.innerHTML = '<h2>' + esc(t('paymentDone')) + '</h2><p class="mut">' + esc(d.student_name) + '</p>' +
+        '<div class="row" style="margin-top:10px">' +
+        '<a class="btn btn-g" href="#/issue?pay=' + d.payment_id + '">' + esc(t('issueCode')) + '</a>' +
+        '<a class="btn" href="#/find">' + esc(t('findStudent')) + '</a></div>';
     }).catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
@@ -899,42 +841,37 @@ function viewIssue(){
         '<input type="checkbox" value="' + s.id + '" style="width:auto;margin:0"> ' + esc(s.title_ar) +
         ' <span class="mut">(' + esc(cn) + ')</span></label>';
     }).join('');
-    return `
-    <h1>${esc(t('issueCode'))}</h1>
-    <div class="card">
-      <label>سجل الدفع</label>
-      <select id="i_pay"><option value="">— اختر سجل دفع —</option>${payOpts}</select>
-      <label>${esc(t('codeType'))}</label>
-      <select id="i_type">
-        <option value="assigned">${esc(t('assigned'))}</option>
-        <option value="voucher">${esc(t('voucher'))}</option>
-        <option value="campaign">${esc(t('campaign'))}</option>
-      </select>
-      <label>${esc(t('scope'))}</label>
-      <select id="i_scope">
-        <option value="full">${esc(t('fullCourse'))}</option>
-        <option value="subs">${esc(t('someSubjects'))}</option>
-      </select>
-      <div id="i_subs" class="hidden" style="margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">
-        ${subOpts || '<span class="mut">لا توجد مواد</span>'}
-      </div>
-      <div class="row">
-        <div class="grow"><label>${esc(t('batchSize'))}</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>
-        <div class="grow"><label>${esc(t('maxUses'))}</label><input id="i_uses" type="number" min="1" value="1"></div>
-        <div class="grow"><label>${esc(t('accessDays'))}</label><input id="i_days" type="number" min="0" placeholder="∞"></div>
-      </div>
-      <label>${esc(t('validUntil'))}</label><input id="i_until" type="date">
-      <label>${esc(t('notes'))}</label><input id="i_notes">
-      <div class="row" style="margin-top:16px"><button class="btn btn-g" id="i_go">${esc(t('issue'))}</button></div>
-    </div>
-    <div id="i_out"></div>`;
+    return '<h1>' + esc(t('issueCode')) + '</h1><div class="card">' +
+      '<label>سجل الدفع</label>' +
+      '<select id="i_pay"><option value="">— اختر سجل دفع —</option>' + payOpts + '</select>' +
+      '<label>' + esc(t('codeType')) + '</label>' +
+      '<select id="i_type"><option value="assigned">' + esc(t('assigned')) + '</option>' +
+      '<option value="voucher">' + esc(t('voucher')) + '</option>' +
+      '<option value="campaign">' + esc(t('campaign')) + '</option></select>' +
+      '<label>' + esc(t('scope')) + '</label>' +
+      '<select id="i_scope"><option value="full">' + esc(t('fullCourse')) + '</option>' +
+      '<option value="subs">' + esc(t('someSubjects')) + '</option></select>' +
+      '<div id="i_subs" class="hidden" style="margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">' +
+      (subOpts || '<span class="mut">لا توجد مواد</span>') + '</div>' +
+      '<div class="row">' +
+      '<div class="grow"><label>' + esc(t('batchSize')) + '</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>' +
+      '<div class="grow"><label>' + esc(t('maxUses')) + '</label><input id="i_uses" type="number" min="1" value="1"></div>' +
+      '<div class="grow"><label>' + esc(t('accessDays')) + '</label><input id="i_days" type="number" min="0" placeholder="∞"></div></div>' +
+      '<label>' + esc(t('validUntil')) + '</label><input id="i_until" type="date">' +
+      '<label>' + esc(t('notes')) + '</label><input id="i_notes">' +
+      '<div class="row" style="margin-top:16px"><button class="btn btn-g" id="i_go">' + esc(t('issue')) + '</button></div>' +
+      '</div><div id="i_out"></div>';
   });
 }
 function bindIssue(){
-  $('#i_scope').onchange = function(){
-    $('#i_subs').classList.toggle('hidden', $('#i_scope').value !== 'subs');
+  var sc = $('#i_scope');
+  if (sc) sc.onchange = function(){
+    var box = $('#i_subs');
+    if (box) box.classList.toggle('hidden', sc.value !== 'subs');
   };
-  $('#i_go').onclick = function(){
+  var go = $('#i_go');
+  if (!go) return;
+  go.onclick = function(){
     var payId = $('#i_pay').value;
     if (!payId) return toast('اختر سجل دفع','bad');
     var subs = null;
@@ -965,24 +902,23 @@ function renderIssueResult(){
   if (!box) return;
   if (!S.codes.length) { box.innerHTML = ''; return; }
   var grid = S.codes.map(function(c){ return '<div class="code">' + esc(c) + '</div>'; }).join('');
-  box.innerHTML = `
-    <div class="card">
-      <h2>${esc(t('issuedCodes'))}</h2>
-      <div class="row" style="margin:10px 0">
-        <button class="btn btn-p" id="i_print">${esc(t('printAll'))}</button>
-        <button class="btn" id="i_copy">${esc(t('copy'))}</button>
-      </div>
-      <div class="grid">${grid}</div>
-    </div>`;
-  $('#i_print').onclick = function(){
+  box.innerHTML = '<div class="card"><h2>' + esc(t('issuedCodes')) + '</h2>' +
+    '<div class="row" style="margin:10px 0">' +
+    '<button class="btn btn-p" id="i_print">' + esc(t('printAll')) + '</button>' +
+    '<button class="btn" id="i_copy">' + esc(t('copy')) + '</button></div>' +
+    '<div class="grid">' + grid + '</div></div>';
+  var pr = $('#i_print');
+  if (pr) pr.onclick = function(){
     var cards = S.codes.map(function(c){
       return '<div class="pcard"><div>كود تفعيل</div><div class="c">' + esc(c) + '</div>' +
              '<div style="font-size:12px">almanarah · مرة واحدة</div></div>';
     }).join('');
-    $('#printArea').innerHTML = '<h2 style="text-align:center">AL-MANARAH — أكواد التفعيل</h2>' + cards;
+    var area = $('#printArea');
+    if (area) area.innerHTML = '<h2 style="text-align:center">AL-MANARAH — أكواد التفعيل</h2>' + cards;
     window.print();
   };
-  $('#i_copy').onclick = function(){
+  var cp = $('#i_copy');
+  if (cp) cp.onclick = function(){
     var txt = S.codes.join('\n');
     if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(txt).then(function(){ toast(t('copied'),'ok'); });
@@ -990,7 +926,7 @@ function renderIssueResult(){
       var ta = document.createElement('textarea');
       ta.value = txt; document.body.appendChild(ta); ta.select();
       try { document.execCommand('copy'); } catch(e){}
-      ta.remove(); toast(t('copied'),'ok');
+      document.body.removeChild(ta); toast(t('copied'),'ok');
     }
   };
 }
@@ -1000,27 +936,15 @@ function viewMyCodes(){
     rows = rows || [];
     var trs = rows.map(function(r){
       var cls = (r.status==='unused' ? 'ok' : (r.status==='used' ? 'gold' : 'bad'));
-      return `
-      <tr>
-        <td>${esc(r.course)}</td>
-        <td>${esc(r.scope)}</td>
-        <td>${esc(r.type)}</td>
-        <td><span class="tag ${cls}">${esc(r.status)}</span></td>
-        <td class="mono">${r.uses_count}/${r.max_uses}</td>
-        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
-      </tr>`;
+      return '<tr><td>' + esc(r.course) + '</td><td>' + esc(r.scope) + '</td><td>' + esc(r.type) + '</td>' +
+        '<td><span class="tag ' + cls + '">' + esc(r.status) + '</span></td>' +
+        '<td class="mono">' + r.uses_count + '/' + r.max_uses + '</td>' +
+        '<td class="mono">' + esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')) + '</td></tr>';
     }).join('');
-    return `
-    <h1>${esc(t('myCodes'))}</h1>
-    <div class="card">
-      <table>
-        <thead><tr>
-          <th>${esc(t('course'))}</th><th>${esc(t('scope'))}</th><th>${esc(t('codeType'))}</th>
-          <th>${esc(t('status'))}</th><th>استُخدم</th><th>${esc(t('createdAt'))}</th>
-        </tr></thead>
-        <tbody>${trs || '<tr><td colspan="6" class="mut">—</td></tr>'}</tbody>
-      </table>
-    </div>`;
+    return '<h1>' + esc(t('myCodes')) + '</h1><div class="card"><table>' +
+      '<thead><tr><th>' + esc(t('course')) + '</th><th>' + esc(t('scope')) + '</th><th>' + esc(t('codeType')) + '</th>' +
+      '<th>' + esc(t('status')) + '</th><th>استُخدم</th><th>' + esc(t('createdAt')) + '</th></tr></thead>' +
+      '<tbody>' + (trs || '<tr><td colspan="6" class="mut">—</td></tr>') + '</tbody></table></div>';
   });
 }
 
@@ -1029,24 +953,20 @@ function viewAdmin(){
   return db.rpc('admin_dashboard').then(function(d){
     d = d || {};
     function k(l,v){ return '<div class="kpi"><span class="mut">' + esc(l) + '</span><b>' + esc(v==null?0:v) + '</b></div>'; }
-    return `
-    <h1>${esc(t('adminHome'))}</h1>
-    <div class="grid">
-      ${k('إجمالي الطلاب', d.students_total)}
-      ${k('طلاب نشطون', d.students_active)}
-      ${k('جدد (7 أيام)', d.students_new_7d)}
-      ${k('كورسات منشورة', d.courses_published)}
-      ${k('عمليات دفع', d.payments_count)}
-      ${k('إجمالي التحصيل', d.payments_total)}
-      ${k('أكواد مستخدمة', d.codes_used)}
-      ${k('أكواد غير مستخدمة', d.codes_unused)}
-      ${k('أحداث تدقيق (24س)', d.audit_24h)}
-    </div>
-    <div class="card"><div class="row">
-      <a class="btn btn-p" href="#/users">${esc(t('users'))}</a>
-      <a class="btn" href="#/payments">${esc(t('payments'))}</a>
-      <a class="btn" href="#/audit">${esc(t('audit'))}</a>
-    </div></div>`;
+    return '<h1>' + esc(t('adminHome')) + '</h1><div class="grid">' +
+      k('إجمالي الطلاب', d.students_total) +
+      k('طلاب نشطون', d.students_active) +
+      k('جدد (7 أيام)', d.students_new_7d) +
+      k('كورسات منشورة', d.courses_published) +
+      k('عمليات دفع', d.payments_count) +
+      k('إجمالي التحصيل', d.payments_total) +
+      k('أكواد مستخدمة', d.codes_used) +
+      k('أكواد غير مستخدمة', d.codes_unused) +
+      k('أحداث تدقيق (24س)', d.audit_24h) +
+      '</div><div class="card"><div class="row">' +
+      '<a class="btn btn-p" href="#/users">' + esc(t('users')) + '</a>' +
+      '<a class="btn" href="#/payments">' + esc(t('payments')) + '</a>' +
+      '<a class="btn" href="#/audit">' + esc(t('audit')) + '</a></div></div>';
   });
 }
 
@@ -1054,49 +974,33 @@ function viewUsers(){
   return db.rpc('admin_list_users', { p_query:S.userQuery || '', p_limit:100 }).catch(function(){ return []; }).then(function(rows){
     rows = rows || [];
     var trs = rows.map(function(u){
-      return `
-      <tr>
-        <td>${esc(u.name)}</td>
-        <td class="mono">${esc(u.email)}</td>
-        <td>${esc(u.roles || 'student')}</td>
-        <td><span class="tag ${u.status==='active'?'ok':'bad'}">${esc(u.status)}</span></td>
-        <td>
-          <div class="row" style="gap:4px">
-            <select class="u_role" data-email="${esc(u.email)}" style="width:auto;margin:0;padding:4px">
-              <option value="">—</option>
-              <option value="enrollment_officer">موظف تسجيل</option>
-              <option value="instructor">مدرّس</option>
-              <option value="super_admin">مدير عام</option>
-              <option value="student">طالب</option>
-            </select>
-            <button class="btn btn-s u_grant" data-email="${esc(u.email)}">${esc(t('grant'))}</button>
-            <button class="btn btn-s u_rev" data-email="${esc(u.email)}">${esc(t('revoke'))}</button>
-            ${u.status==='active'
-              ? '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="suspended">' + esc(t('suspend')) + '</button>'
-              : '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="active">' + esc(t('activate2')) + '</button>'}
-          </div>
-        </td>
-      </tr>`;
+      var statusBtn = (u.status==='active')
+        ? '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="suspended">' + esc(t('suspend')) + '</button>'
+        : '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="active">' + esc(t('activate2')) + '</button>';
+      return '<tr><td>' + esc(u.name) + '</td><td class="mono">' + esc(u.email) + '</td>' +
+        '<td>' + esc(u.roles || 'student') + '</td>' +
+        '<td><span class="tag ' + (u.status==='active'?'ok':'bad') + '">' + esc(u.status) + '</span></td>' +
+        '<td><div class="row" style="gap:4px">' +
+        '<select class="u_role" data-email="' + esc(u.email) + '" style="width:auto;margin:0;padding:4px">' +
+        '<option value="">—</option><option value="enrollment_officer">موظف تسجيل</option>' +
+        '<option value="instructor">مدرّس</option><option value="super_admin">مدير عام</option>' +
+        '<option value="student">طالب</option></select>' +
+        '<button class="btn btn-s u_grant" data-email="' + esc(u.email) + '">' + esc(t('grant')) + '</button>' +
+        '<button class="btn btn-s u_rev" data-email="' + esc(u.email) + '">' + esc(t('revoke')) + '</button>' +
+        statusBtn + '</div></td></tr>';
     }).join('');
-    return `
-    <h1>${esc(t('users'))}</h1>
-    <div class="card"><div class="row">
-      <input id="u_q" class="grow" placeholder="بحث بالبريد أو الاسم" value="${esc(S.userQuery || '')}">
-      <button class="btn btn-p" id="u_go">${esc(t('search'))}</button>
-    </div></div>
-    <div class="card">
-      <table>
-        <thead><tr>
-          <th>${esc(t('name'))}</th><th>${esc(t('email'))}</th><th>${esc(t('role'))}</th>
-          <th>${esc(t('status'))}</th><th>${esc(t('actions'))}</th>
-        </tr></thead>
-        <tbody>${trs || '<tr><td colspan="5" class="mut">—</td></tr>'}</tbody>
-      </table>
-    </div>`;
+    return '<h1>' + esc(t('users')) + '</h1>' +
+      '<div class="card"><div class="row">' +
+      '<input id="u_q" class="grow" placeholder="بحث بالبريد أو الاسم" value="' + esc(S.userQuery || '') + '">' +
+      '<button class="btn btn-p" id="u_go">' + esc(t('search')) + '</button></div></div>' +
+      '<div class="card"><table><thead><tr><th>' + esc(t('name')) + '</th><th>' + esc(t('email')) + '</th>' +
+      '<th>' + esc(t('role')) + '</th><th>' + esc(t('status')) + '</th><th>' + esc(t('actions')) + '</th></tr></thead>' +
+      '<tbody>' + (trs || '<tr><td colspan="5" class="mut">—</td></tr>') + '</tbody></table></div>';
   });
 }
 function bindUsers(){
-  $('#u_go').onclick = function(){ S.userQuery = $('#u_q').value.trim(); render(); };
+  var q = $('#u_go');
+  if (q) q.onclick = function(){ S.userQuery = $('#u_q').value.trim(); render(); };
   [].slice.call(document.querySelectorAll('.u_grant,.u_rev')).forEach(function(b){
     b.onclick = function(){
       var email = b.getAttribute('data-email');
@@ -1122,26 +1026,15 @@ function viewPayments(){
   return db.rpc('admin_list_payments', { p_limit:100 }).catch(function(){ return []; }).then(function(rows){
     rows = rows || [];
     var trs = rows.map(function(r){
-      return `
-      <tr>
-        <td>${esc(r.student)}</td>
-        <td>${esc(r.course)}</td>
-        <td class="mono">${r.amount} ${esc(r.currency)}</td>
-        <td class="mono">${esc(r.receipt || '—')}</td>
-        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
-      </tr>`;
+      return '<tr><td>' + esc(r.student) + '</td><td>' + esc(r.course) + '</td>' +
+        '<td class="mono">' + r.amount + ' ' + esc(r.currency) + '</td>' +
+        '<td class="mono">' + esc(r.receipt || '—') + '</td>' +
+        '<td class="mono">' + esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')) + '</td></tr>';
     }).join('');
-    return `
-    <h1>${esc(t('payments'))}</h1>
-    <div class="card">
-      <table>
-        <thead><tr>
-          <th>الطالب</th><th>${esc(t('course'))}</th><th>${esc(t('amount'))}</th>
-          <th>${esc(t('receipt'))}</th><th>${esc(t('createdAt'))}</th>
-        </tr></thead>
-        <tbody>${trs || '<tr><td colspan="5" class="mut">—</td></tr>'}</tbody>
-      </table>
-    </div>`;
+    return '<h1>' + esc(t('payments')) + '</h1><div class="card"><table>' +
+      '<thead><tr><th>الطالب</th><th>' + esc(t('course')) + '</th><th>' + esc(t('amount')) + '</th>' +
+      '<th>' + esc(t('receipt')) + '</th><th>' + esc(t('createdAt')) + '</th></tr></thead>' +
+      '<tbody>' + (trs || '<tr><td colspan="5" class="mut">—</td></tr>') + '</tbody></table></div>';
   });
 }
 
@@ -1149,26 +1042,14 @@ function viewAudit(){
   return db.rpc('admin_list_audit', { p_limit:150 }).catch(function(){ return []; }).then(function(rows){
     rows = rows || [];
     var trs = rows.map(function(r){
-      return `
-      <tr>
-        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
-        <td>${esc(r.actor || '—')}</td>
-        <td class="mut">${esc(r.role || '—')}</td>
-        <td class="mono">${esc(r.action)}</td>
-        <td class="mono">${esc(r.target || '—')}</td>
-        <td class="mono" style="max-width:280px;word-break:break-all">${esc(JSON.stringify(r.meta || {}))}</td>
-      </tr>`;
+      return '<tr><td class="mono">' + esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')) + '</td>' +
+        '<td>' + esc(r.actor || '—') + '</td><td class="mut">' + esc(r.role || '—') + '</td>' +
+        '<td class="mono">' + esc(r.action) + '</td><td class="mono">' + esc(r.target || '—') + '</td>' +
+        '<td class="mono" style="max-width:280px;word-break:break-all">' + esc(JSON.stringify(r.meta || {})) + '</td></tr>';
     }).join('');
-    return `
-    <h1>${esc(t('audit'))}</h1>
-    <div class="card">
-      <table>
-        <thead><tr>
-          <th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>العنصر</th><th>تفاصيل</th>
-        </tr></thead>
-        <tbody>${trs || '<tr><td colspan="6" class="mut">—</td></tr>'}</tbody>
-      </table>
-    </div>`;
+    return '<h1>' + esc(t('audit')) + '</h1><div class="card"><table>' +
+      '<thead><tr><th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>العنصر</th><th>تفاصيل</th></tr></thead>' +
+      '<tbody>' + (trs || '<tr><td colspan="6" class="mut">—</td></tr>') + '</tbody></table></div>';
   });
 }
 
@@ -1194,18 +1075,11 @@ function render(){
   var key = seg[0] || (staff ? 'desk' : 'home');
   var arg = seg[1] || null;
 
-  function go(htmlPromise, binder){
-    $('#view').innerHTML = '<div class="mut">…</div>';
-    htmlPromise.then(function(html){
-      S.route = key;
-      $('#app').innerHTML = shell(deskNav(), html);
-      bindChrome();
-      if (binder) binder(arg);
-    }).catch(function(e){
-      $('#view').innerHTML = '<div class="diag">' + esc(errMsg(e)) + '</div>';
-    });
-  }
+  /* الخطوة 1: ارسم الهيكل فوراً (عشان #view يبقى موجود) */
+  setHTML($('#app'), shell(deskNav(), '<div class="mut">…</div>'));
+  bindChrome();
 
+  /* الخطوة 2: لما البيانات تجي، بدّل منطقة العرض بس */
   if (key === 'course')  return go(viewCourse(arg), null);
   if (key === 'subject') return go(viewSubject(arg), null);
   if (key === 'lesson')  return go(viewLesson(arg), bindLesson);
@@ -1218,25 +1092,40 @@ function render(){
   go(VIEWS[key](), BINDERS[key]);
 }
 
+function go(htmlPromise, binder){
+  htmlPromise.then(function(html){
+    var main = $('#view');
+    setHTML(main, html);
+    if (binder) binder();
+  }).catch(function(e){
+    var main = $('#view');
+    if (main) main.innerHTML = '<div class="diag">' + esc(errMsg(e)) + '</div>';
+    else setHTML($('#app'), '<div class="center"><div class="card"><div class="diag">' + esc(errMsg(e)) + '</div></div></div>');
+  });
+}
+
 function boot(){
   if (!cfg) { renderSetup(); return; }
-  $('#app').innerHTML = '<div class="center"><div class="card mut">…</div></div>';
+  setHTML($('#app'), '<div class="center"><div class="card mut">…</div></div>');
   loadMe().then(render).catch(function(e){
-    $('#app').innerHTML = '<div class="center"><div class="card"><div class="diag">' + esc(errMsg(e)) + '</div></div></div>';
+    setHTML($('#app'), '<div class="center"><div class="card"><div class="diag">' + esc(errMsg(e)) + '</div></div></div>');
   });
 }
 
 window.addEventListener('hashchange', function(){ if (cfg && S.session) render(); });
 window.addEventListener('error', function(ev){
-  if (!$('#app')) return;
+  var app = $('#app');
+  if (!app) return;
   var d = document.createElement('div');
   d.className = 'diag';
   d.textContent = 'خطأ غير متوقع: ' + (ev.message || '');
-  $('#app').appendChild(d);
+  app.appendChild(d);
 });
 
 try { boot(); }
-catch(e){ if (FATAL) { FATAL.style.display='block'; FATAL.textContent = 'خطأ: ' + (e && e.message || e); } }
+catch(e){
+  if (FATAL) { FATAL.style.display='block'; FATAL.textContent = 'خطأ: ' + (e && e.message || e); }
+}
 </script>
 </body>
 </html>
