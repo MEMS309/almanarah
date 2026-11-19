@@ -5,14 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>المنارة — غرفة التسجيل وبوابة الطالب</title>
 <style>
-:root{
-  --navy:#0B2A4A; --gold:#E8A317; --bg:#F7F8FA; --card:#FFFFFF; --tx:#14202E; --tx2:#5B6878;
-  --bd:#E3E8EF; --ok:#1F9D55; --bad:#D64545; --warn:#B7791F; --soft:#EEF3F9;
-}
-[data-theme="dark"]{
-  --navy:#0B2A4A; --gold:#F2B84B; --bg:#0E1520; --card:#16202E; --tx:#E8EDF4; --tx2:#9AA7B8;
-  --bd:#243244; --ok:#3FB27F; --bad:#E46363; --warn:#E0A93B; --soft:#1B2635;
-}
+:root{--navy:#0B2A4A;--gold:#E8A317;--bg:#F7F8FA;--card:#FFFFFF;--tx:#14202E;--tx2:#5B6878;--bd:#E3E8EF;--ok:#1F9D55;--bad:#D64545;--warn:#B7791F;--soft:#EEF3F9}
+[data-theme="dark"]{--navy:#0B2A4A;--gold:#F2B84B;--bg:#0E1520;--card:#16202E;--tx:#E8EDF4;--tx2:#9AA7B8;--bd:#243244;--ok:#3FB27F;--bad:#E46363;--warn:#E0A93B;--soft:#1B2635}
 *{box-sizing:border-box}
 body{margin:0;font-family:"IBM Plex Sans Arabic","Cairo",Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:15px}
 a{color:inherit;text-decoration:none}
@@ -86,25 +80,37 @@ th{color:var(--tx2);font-size:12px;font-weight:600}
 </style>
 </head>
 <body>
+
+<div id="fatal" class="diag" style="margin:16px">
+  <b>تعذّر تشغيل التطبيق (خطأ في الكود).</b><br>
+  الملف اللي على الموقع مش هو آخر نسخة. ارجع لـ GitHub في مستودع <b>almanarah</b>،
+  شيل كل الملفات ما عدا <b>index.html</b>، وارفع النسخة الأخيرة بالاسم ده بالظبط.
+</div>
+
 <div id="app"></div>
 <div id="printArea"></div>
 <div id="toasts"></div>
 
 <script>
 "use strict";
-/* ==============================================================
-   المنارة — تطبيق مكتفٍ ذاتياً، بلا أي اعتماد على مواقع خارجية
-   ============================================================== */
 
-var $  = function(s,r){ return (r||document).querySelector(s); };
+/* لو الكود سليم، السطر ده هيتنفّذ ويخفي رسالة الخطأ */
+var FATAL = document.getElementById('fatal');
+if (FATAL) FATAL.style.display = 'none';
+
+var $ = function(s,r){ return (r||document).querySelector(s); };
 var LS = {
-  get:function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
-  set:function(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
-  del:function(k){ localStorage.removeItem(k); }
+  get: function(k,d){ try{ var v=localStorage.getItem(k); return v===null?d:JSON.parse(v); }catch(e){ return d; } },
+  set: function(k,v){ localStorage.setItem(k, JSON.stringify(v)); },
+  del: function(k){ localStorage.removeItem(k); }
 };
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 
-/* --------------------------------------------------------- الترجمات --------- */
+/* ============================== الترجمات ============================== */
 var I18N = {
   ar:{
     appName:'المنارة', tagline:'تعلّم بوضوح',
@@ -166,9 +172,13 @@ var I18N = {
 };
 var lang = LS.get('mn_lang','ar');
 var theme = LS.get('mn_theme','light');
-function t(k){ var d=I18N.ar[k]; var v=I18N[lang] && I18N[lang][k]; return (v===undefined? d : v); }
+function t(k){
+  var d = I18N.ar[k];
+  var v = I18N[lang] ? I18N[lang][k] : undefined;
+  return (v===undefined ? d : v);
+}
 
-/* ------------------------------------------------------- الحالة العامة ------- */
+/* ============================== الحالة ============================== */
 var cfg = LS.get('mn_cfg', null);
 var token = null;
 var S = { session:null, profile:null, roles:[], route:'home', authMode:'login',
@@ -176,22 +186,25 @@ var S = { session:null, profile:null, roles:[], route:'home', authMode:'login',
 
 function applyChrome(){
   document.documentElement.lang = lang;
-  document.documentElement.dir = lang==='ar'?'rtl':'ltr';
+  document.documentElement.dir = (lang==='ar' ? 'rtl' : 'ltr');
   document.documentElement.dataset.theme = theme;
 }
-function toast(msg,kind){
-  var d=document.createElement('div');
-  d.className='toast '+(kind||'');
-  d.textContent=msg;
+function toast(msg, kind){
+  var d = document.createElement('div');
+  d.className = 'toast ' + (kind||'');
+  d.textContent = msg;
   $('#toasts').appendChild(d);
-  setTimeout(function(){ d.style.opacity='0'; d.style.transition='opacity .4s'; setTimeout(function(){ d.remove(); },400); }, 5000);
+  setTimeout(function(){
+    d.style.opacity='0'; d.style.transition='opacity .4s';
+    setTimeout(function(){ d.remove(); }, 400);
+  }, 5000);
 }
 
-/* ---- خريطة الأخطاء: من كود Supasonic إلى جملة تفهمها ---- */
+/* ============================== الأخطاء ============================== */
 var ERRS = {
   student_not_found:'الطالب غير مسجّل — تأكد من البريد',
   student_not_active:'حساب الطالب غير نشط — راجع لوحة الإدارة',
-  email_not_confirmed:'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد، أو استخدم زر "إعادة إرسال".',
+  email_not_confirmed:'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد.',
   email_not_confirmed_signup:'بريد الحساب غير مؤكد بعد',
   forbidden:'لا تملك صلاحية تنفيذ هذه العملية',
   code_invalid:'كود غير صحيح',
@@ -209,37 +222,26 @@ var ERRS = {
   immutable_record:'سجل محمي — لا يمكن التعديل',
   user_already_exists:'هذا البريد مسجّل بالفعل — جرّب تسجيل الدخول',
   signup_disabled:'التسجيل مغلق حالياً من إعدادات Supabase',
-  email_address_not_authorized:'هذا البريد غير مسموح به في إعدادات Supabase',
-  weak_password:'كلمة المرور ضعيفة — استخدم 8 أحرف على الأقل',
-  over_email_send_rate_limit:'محاولات كتير — استنى دقيقة وجرّب تاني',
-  over_request_rate_limit:'طلبات كتير — استنى دقيقة وجرّب تاني'
+  weak_password:'كلمة المرور ضعيفة — استخدم 8 أحرف على الأقل'
 };
 function errMsg(e){
-  var raw = (e && (e.code || e.message || e.msg)) || '';
-  var m = String(raw);
-  if(ERRS[m]) return ERRS[m];
-  if(/failed to fetch|networkerror|load failed/i.test(m))
-    return 'تعذّر الوصول للسيرفر — تحقّق من الإنترنت أو من المفاتيح';
-  if(/not confirm/i.test(m))  return 'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد.';
-  if(/invalid login/i.test(m))return 'البريد أو كلمة المرور غير صحيحة';
-  if(/user not found/i.test(m)) return 'مافيش حساب بالبريد ده — سجّل حساب جديد الأول';
-  if(/relation .* does not exist|pgrst205/i.test(m))
-    return 'الجداول مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase SQL Editor';
-  if(/does not exist/i.test(m) && /function/i.test(m))
-    return 'الدوال مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase SQL Editor';
-  if(m.indexOf('HTTP 401')===0 || m.indexOf('HTTP 403')===0)
-    return 'المفتاح غير صحيح أو منتهي — راجع Project URL و Publishable key';
+  var m = String((e && (e.code || e.message || e.msg)) || '');
+  if (ERRS[m]) return ERRS[m];
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return 'تعذّر الوصول للسيرفر — تحقّق من الإنترنت أو من المفاتيح';
+  if (/not confirm/i.test(m)) return 'بريد الحساب غير مؤكد. ادخل على بريدك ودوس رابط التأكيد.';
+  if (/invalid login/i.test(m)) return 'البريد أو كلمة المرور غير صحيحة';
+  if (/user not found/i.test(m)) return 'مافيش حساب بالبريد ده — سجّل حساب جديد الأول';
+  if (/does not exist|pgrst205/i.test(m)) return 'الجداول مش موجودة — شغّل ملف almanarah-schema-v3.sql من Supabase';
+  if (m.indexOf('HTTP 401')===0 || m.indexOf('HTTP 403')===0) return 'المفتاح غير صحيح أو منتهي — راجع Project URL و Publishable key';
   return m || t('err');
 }
 
-/* ==============================================================
-   طبقة الاتصال — كلها بـ fetch مباشرة، بلا مكتبات خارجية
-   ============================================================== */
+/* ============================== الاتصال ============================== */
 function api(path, opt){
   opt = opt || {};
   var h = { 'apikey': cfg.anon, 'Content-Type':'application/json' };
-  if(opt.auth !== false && token) h['Authorization'] = 'Bearer ' + token;
-  if(opt.headers){ for(var k in opt.headers) h[k]=opt.headers[k]; }
+  if (opt.auth !== false && token) h['Authorization'] = 'Bearer ' + token;
+  if (opt.headers) { for (var k in opt.headers) h[k] = opt.headers[k]; }
 
   return fetch(cfg.url.replace(/\/+$/,'') + path, {
     method: opt.method || 'GET',
@@ -248,186 +250,185 @@ function api(path, opt){
   }).then(function(r){
     return r.text().then(function(txt){
       var j = null;
-      if(txt){ try{ j = JSON.parse(txt); }catch(e){ j = { message: txt.slice(0,300) }; } }
-      if(!r.ok){
+      if (txt) { try { j = JSON.parse(txt); } catch(e) { j = { message: txt.slice(0,300) }; } }
+      if (!r.ok) {
         var m = (j && (j.error_code || j.code || j.message || j.msg || j.error_description || j.error)) || ('HTTP ' + r.status);
         var err = new Error(String(m));
-        err.code = String(m);
-        err.status = r.status;
-        err.raw = txt.slice(0,300);
+        err.code = String(m); err.status = r.status; err.raw = txt.slice(0,300);
         throw err;
       }
       return j;
     });
   });
 }
-
 function setSession(j){
   token = j.access_token || null;
   LS.set('mn_session', { access_token:j.access_token, refresh_token:j.refresh_token, user:j.user });
 }
 function clearSession(){
   token = null; LS.del('mn_session');
-  S.session=null; S.profile=null; S.roles=[];
+  S.session = null; S.profile = null; S.roles = [];
 }
 var Auth = {
   signUp: function(email,password,fullName){
     return api('/auth/v1/signup',{method:'POST',auth:false,
       body:{ email:email, password:password, data:{ full_name:fullName } }})
-      .then(function(j){ if(j.access_token) setSession(j); return j; });
+      .then(function(j){ if (j.access_token) setSession(j); return j; });
   },
   signIn: function(email,password){
     return api('/auth/v1/token?grant_type=password',{method:'POST',auth:false,
       body:{ email:email, password:password }})
       .then(function(j){ setSession(j); return j; });
   },
-  recover:  function(email){ return api('/auth/v1/recover',{method:'POST',auth:false,body:{email:email}}); },
-  resend:   function(email){ return api('/auth/v1/resend',{method:'POST',auth:false,
-      body:{ type:'signup', email:email }}); },
-  logout:   function(){ return api('/auth/v1/logout',{method:'POST'}).catch(function(){}).then(clearSession); },
-  me:       function(){ return api('/auth/v1/user'); },
-  update:   function(body){ return api('/auth/v1/user',{method:'PUT',body:body}).then(function(j){ if(j.access_token) setSession(j); return j; }); }
+  recover: function(email){ return api('/auth/v1/recover',{method:'POST',auth:false,body:{email:email}}); },
+  resend:  function(email){ return api('/auth/v1/resend',{method:'POST',auth:false,body:{type:'signup',email:email}}); },
+  logout:  function(){ return api('/auth/v1/logout',{method:'POST'}).catch(function(){}).then(clearSession); },
+  me:      function(){ return api('/auth/v1/user'); },
+  update:  function(body){ return api('/auth/v1/user',{method:'PUT',body:body}).then(function(j){ if (j.access_token) setSession(j); return j; }); }
 };
 var db = {
   select: function(table,q){ return api('/rest/v1/'+table+'?select=*'+(q?('&'+q):'')); },
-  one:    function(table,q){ return api('/rest/v1/'+table+'?select=*'+(q?('&'+q):'')).then(function(a){ return (a&&a[0])||null; }); },
+  one:    function(table,q){ return api('/rest/v1/'+table+'?select=*'+(q?('&'+q):'')).then(function(a){ return (a && a[0]) || null; }); },
   update: function(table,q,body){ return api('/rest/v1/'+table+'?'+q,{method:'PATCH',body:body,headers:{Prefer:'return=minimal'}}); },
   rpc:    function(name,args){ return api('/rest/v1/rpc/'+name,{method:'POST',body:args||{}}); }
 };
 function inList(arr){ return '(' + arr.join(',') + ')'; }
+function num(v){ var n = Number(v); return isFinite(n) ? n : 0; }
 
-/* ============================================================== */
+/* ============================== شاشة الربط ============================== */
 function renderSetup(){
-  $('#app').innerHTML =
-  '<div class="center">'+
-    '<div class="hero" style="text-align:center">'+
-      '<div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>'+esc(t('appName'))+'</div>'+
-      '<p class="mut" style="margin:6px 0 0">'+esc(t('tagline'))+'</p>'+
-    '</div>'+
-    '<div class="card">'+
-      '<h1>'+esc(t('setupTitle'))+'</h1>'+
-      '<p class="mut">'+esc(t('setupHint'))+'</p>'+
-      '<div class="hint good">✅ انسخ <b>Publishable key</b> — اللي بيبدأ بـ <span class="mono">sb_publishable_…</span></div>'+
-      '<div class="hint dang">❌ متنسخش <b>Secret key</b> أبداً — اللي بيبدأ بـ <span class="mono">sb_secret_…</span> (بيفتح كل حاجة من غير حماية)</div>'+
-      '<div id="setup_diag"></div>'+
-      '<label>'+esc(t('url'))+'</label>'+
-      '<input id="s_url" placeholder="https://xxxxxxxx.supabase.co" value="'+esc(cfg?cfg.url:'')+'">'+
-      '<label>'+esc(t('anon'))+'</label>'+
-      '<input id="s_key" placeholder="sb_publishable_…" value="'+esc(cfg?cfg.anon:'')+'">'+
-      '<p class="mut" style="margin-top:10px">'+esc(t('setupNote'))+'</p>'+
-      '<div class="row" style="margin-top:14px">'+
-        '<button class="btn btn-p grow" id="s_go">'+esc(t('save'))+'</button>'+
-        '<button class="btn" id="s_test">'+esc(t('test'))+'</button>'+
-      '</div>'+
-    '</div>'+
-  '</div>';
+  $('#app').innerHTML = `
+  <div class="center">
+    <div class="hero" style="text-align:center">
+      <div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>${esc(t('appName'))}</div>
+      <p class="mut" style="margin:6px 0 0">${esc(t('tagline'))}</p>
+    </div>
+    <div class="card">
+      <h1>${esc(t('setupTitle'))}</h1>
+      <p class="mut">${esc(t('setupHint'))}</p>
+      <div class="hint good">انسخ <b>Publishable key</b> — اللي بيبدأ بـ <span class="mono">sb_publishable_</span></div>
+      <div class="hint dang">متنسخش <b>Secret key</b> أبداً — اللي بيبدأ بـ <span class="mono">sb_secret_</span></div>
+      <div id="setup_diag"></div>
+      <label>${esc(t('url'))}</label>
+      <input id="s_url" placeholder="https://xxxxxxxx.supabase.co" value="${esc(cfg ? cfg.url : '')}">
+      <label>${esc(t('anon'))}</label>
+      <input id="s_key" placeholder="sb_publishable_..." value="${esc(cfg ? cfg.anon : '')}">
+      <p class="mut" style="margin-top:10px">${esc(t('setupNote'))}</p>
+      <div class="row" style="margin-top:14px">
+        <button class="btn btn-p grow" id="s_go">${esc(t('save'))}</button>
+        <button class="btn" id="s_test">${esc(t('test'))}</button>
+      </div>
+    </div>
+  </div>`;
 
   $('#s_test').onclick = function(){
-    var u=$('#s_url').value.trim(), k=$('#s_key').value.trim();
-    var box=$('#setup_diag');
-    if(!u||!k){ box.innerHTML='<div class="diag">املأ الخانتين أولاً</div>'; return; }
-    box.innerHTML='<div class="mut">جارٍ الاختبار…</div>';
-    fetch(u.replace(/\/+$/,'')+'/rest/v1/app_settings?select=key',{headers:{'apikey':k}})
+    var u = $('#s_url').value.trim();
+    var k = $('#s_key').value.trim();
+    var box = $('#setup_diag');
+    if (!u || !k) { box.innerHTML = '<div class="diag">املأ الخانتين أولاً</div>'; return; }
+    box.innerHTML = '<div class="mut">جارٍ الاختبار…</div>';
+    fetch(u.replace(/\/+$/,'') + '/rest/v1/app_settings?select=key', { headers:{'apikey':k} })
       .then(function(r){ return r.text().then(function(x){
         box.innerHTML = r.ok
-          ? '<div class="diag ok">✅ الاتصال ناجح — القيمتين صح. دوس "حفظ وبدء".</div>'
-          : '<div class="diag">الاتصال فشل ('+r.status+')\n'+x.slice(0,500)+'</div>';
+          ? '<div class="diag ok">الاتصال ناجح — القيمتين صح. دوس حفظ وبدء.</div>'
+          : '<div class="diag">الاتصال فشل (' + r.status + ')<br>' + esc(x.slice(0,400)) + '</div>';
       });})
-      .catch(function(e){ box.innerHTML='<div class="diag">فشل الوصول:\n'+esc(String(e))+'\n\nتأكد: الإنترنت شغال؟ الURL من Supabase؟ المفتاح Publishable؟</div>'; });
+      .catch(function(e){ box.innerHTML = '<div class="diag">فشل الوصول: ' + esc(String(e)) + '</div>'; });
   };
 
   $('#s_go').onclick = function(){
-    var url=$('#s_url').value.trim().replace(/\/+$/,''), anon=$('#s_key').value.trim();
-    if(!url||!anon) return toast(t('err'),'bad');
-    if(!/^https:\/\//i.test(url)) return toast('Project URL شكله غلط','bad');
-    if(anon.indexOf('sb_secret')===0) return toast('ده المفتاح السري — استخدم Publishable key','bad');
-    if(anon.indexOf('sb_publishable_')!==0 && anon.indexOf('eyJ')!==0)
-      return toast('المفتاح شكله غلط — لازم يبدأ بـ sb_publishable_ أو eyJ','bad');
-    LS.set('mn_cfg',{url:url,anon:anon}); cfg={url:url,anon:anon};
+    var url = $('#s_url').value.trim().replace(/\/+$/,'');
+    var anon = $('#s_key').value.trim();
+    if (!url || !anon) return toast(t('err'),'bad');
+    if (!/^https:\/\//i.test(url)) return toast('Project URL شكله غلط','bad');
+    if (anon.indexOf('sb_secret') === 0) return toast('ده المفتاح السري — استخدم Publishable key','bad');
+    if (anon.indexOf('sb_publishable_') !== 0 && anon.indexOf('eyJ') !== 0) return toast('المفتاح شكله غلط','bad');
+    LS.set('mn_cfg', { url:url, anon:anon });
+    cfg = { url:url, anon:anon };
     boot();
   };
 }
 
+/* ============================== شاشة الدخول ============================== */
 function renderAuth(){
-  var mode = S.authMode||'login';
-  var errBox = S.authError
-    ? '<div class="diag">'+esc(S.authError)+'</div>'
-    : '';
+  var mode = S.authMode || 'login';
+  var errBox = S.authError ? '<div class="diag">' + esc(S.authError) + '</div>' : '';
   var resendBox = (mode==='login' && S.authUnconfirmed)
-    ? '<div class="row" style="margin-top:8px"><button class="btn btn-s" id="a_resend">'+esc(t('resend'))+'</button></div>'
+    ? '<div class="row" style="margin-top:8px"><button class="btn btn-s" id="a_resend">' + esc(t('resend')) + '</button></div>'
     : '';
 
-  $('#app').innerHTML =
-  '<div class="center">'+
-    '<div class="hero" style="text-align:center">'+
-      '<div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>'+esc(t('appName'))+'</div>'+
-      '<p class="mut" style="margin:6px 0 0">'+esc(t('tagline'))+'</p>'+
-    '</div>'+
-    '<div class="card">'+
-      errBox+
-      '<div class="row" style="margin-bottom:8px">'+
-        '<button class="btn btn-s '+(mode==='login'?'btn-p':'')+'" id="m_login">'+esc(t('login'))+'</button>'+
-        '<button class="btn btn-s '+(mode==='signup'?'btn-p':'')+'" id="m_signup">'+esc(t('signup'))+'</button>'+
-      '</div>'+
-      (mode==='signup' ? '<label>'+esc(t('name'))+'</label><input id="a_name">' : '')+
-      '<label>'+esc(t('email'))+'</label><input id="a_email" type="email" autocomplete="email">'+
-      '<label>'+esc(t('password'))+'</label><input id="a_pwd" type="password">'+
-      (mode==='signup' ? '<label>'+esc(t('pwd2'))+'</label><input id="a_pwd2" type="password"><label>'+esc(t('phone'))+'</label><input id="a_phone">' : '')+
-      '<div class="row" style="margin-top:16px">'+
-        '<button class="btn btn-p grow" id="a_go">'+esc(mode==='login'?t('login'):t('signup'))+'</button>'+
-      '</div>'+
-      resendBox+
-      (mode==='login' ? '<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">'+esc(t('forgot'))+'</button></div>' : '')+
-    '</div>'+
-  '</div>';
+  $('#app').innerHTML = `
+  <div class="center">
+    <div class="hero" style="text-align:center">
+      <div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>${esc(t('appName'))}</div>
+      <p class="mut" style="margin:6px 0 0">${esc(t('tagline'))}</p>
+    </div>
+    <div class="card">
+      ${errBox}
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn btn-s ${mode==='login'?'btn-p':''}" id="m_login">${esc(t('login'))}</button>
+        <button class="btn btn-s ${mode==='signup'?'btn-p':''}" id="m_signup">${esc(t('signup'))}</button>
+      </div>
+      ${mode==='signup' ? '<label>'+esc(t('name'))+'</label><input id="a_name">' : ''}
+      <label>${esc(t('email'))}</label>
+      <input id="a_email" type="email" autocomplete="email">
+      <label>${esc(t('password'))}</label>
+      <input id="a_pwd" type="password">
+      ${mode==='signup' ? '<label>'+esc(t('pwd2'))+'</label><input id="a_pwd2" type="password"><label>'+esc(t('phone'))+'</label><input id="a_phone">' : ''}
+      <div class="row" style="margin-top:16px">
+        <button class="btn btn-p grow" id="a_go">${esc(mode==='login' ? t('login') : t('signup'))}</button>
+      </div>
+      ${resendBox}
+      ${mode==='login' ? '<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">'+esc(t('forgot'))+'</button></div>' : ''}
+    </div>
+  </div>`;
 
-  $('#m_login').onclick=function(){ S.authMode='login'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
-  $('#m_signup').onclick=function(){ S.authMode='signup'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
+  $('#m_login').onclick  = function(){ S.authMode='login';  S.authError=null; S.authUnconfirmed=false; renderAuth(); };
+  $('#m_signup').onclick = function(){ S.authMode='signup'; S.authError=null; S.authUnconfirmed=false; renderAuth(); };
 
-  $('#a_go').onclick=function(){
-    var email=$('#a_email').value.trim(), pwd=$('#a_pwd').value;
-    S.authError=null; S.authUnconfirmed=false;
-    if(!email||!pwd){ S.authError='اكتب البريد وكلمة المرور'; S.authUnconfirmed=false; renderAuth(); return; }
-    var done = function(){ S.authError=null; return loadMe().then(render); };
+  $('#a_go').onclick = function(){
+    var email = $('#a_email').value.trim();
+    var pwd   = $('#a_pwd').value;
+    S.authError = null; S.authUnconfirmed = false;
+    if (!email || !pwd) { S.authError = 'اكتب البريد وكلمة المرور'; renderAuth(); return; }
+
+    var done = function(){ S.authError = null; return loadMe().then(render); };
     var fail = function(e){
       S.authError = errMsg(e);
-      S.authUnconfirmed = /not confirm|email_not_confirmed/i.test(String(e&&(e.code||e.message)));
+      S.authUnconfirmed = /not confirm|email_not_confirmed/i.test(String(e && (e.code||e.message)));
       renderAuth();
     };
 
-    if(mode==='signup'){
-      if(pwd!==$('#a_pwd2').value){ S.authError='كلمتا المرور غير متطابقتين'; renderAuth(); return; }
-      if(pwd.length<8){ S.authError='كلمة المرور 8 أحرف على الأقل'; renderAuth(); return; }
-      var phone=$('#a_phone').value.trim();
-      Auth.signUp(email,pwd,$('#a_name').value.trim())
+    if (mode === 'signup'){
+      if (pwd !== $('#a_pwd2').value) { S.authError = 'كلمتا المرور غير متطابقتين'; renderAuth(); return; }
+      if (pwd.length < 8) { S.authError = 'كلمة المرور 8 أحرف على الأقل'; renderAuth(); return; }
+      var phone = $('#a_phone').value.trim();
+      Auth.signUp(email, pwd, $('#a_name').value.trim())
         .then(function(j){
-          if(!j.access_token){
-            S.authError='تم إنشاء الحساب — ادخل على بريدك ودوس رابط التأكيد، وبعدين سجّل الدخول.';
-            S.authUnconfirmed=true;
-            S.authMode='login'; renderAuth(); return;
+          if (!j.access_token){
+            S.authError = 'تم إنشاء الحساب — ادخل على بريدك ودوس رابط التأكيد، وبعدين سجّل الدخول.';
+            S.authUnconfirmed = true; S.authMode = 'login'; renderAuth(); return;
           }
-          if(phone){
-            return db.update('profiles','id=eq.'+j.user.id,{phone:phone}).catch(function(){}).then(done);
-          }
+          if (phone) return db.update('profiles','id=eq.'+j.user.id,{phone:phone}).catch(function(){}).then(done);
           return done();
         }).catch(fail);
-    }else{
-      Auth.signIn(email,pwd).then(done).catch(fail);
+    } else {
+      Auth.signIn(email, pwd).then(done).catch(fail);
     }
   };
 
-  if(mode==='login'){
-    $('#a_forgot').onclick=function(){
-      var email=$('#a_email').value.trim();
-      if(!email){ S.authError='اكتب بريدك الأول'; renderAuth(); return; }
+  if (mode === 'login'){
+    $('#a_forgot').onclick = function(){
+      var email = $('#a_email').value.trim();
+      if (!email) { S.authError = 'اكتب بريدك الأول'; renderAuth(); return; }
       Auth.recover(email)
-        .then(function(){ S.authError='أُرسل رابط استعادة كلمة المرور إلى بريدك.'; renderAuth(); })
-        .catch(function(e){ S.authError=errMsg(e); renderAuth(); });
+        .then(function(){ S.authError = 'أُرسل رابط استعادة كلمة المرور إلى بريدك.'; renderAuth(); })
+        .catch(function(e){ S.authError = errMsg(e); renderAuth(); });
     };
-    if(S.authUnconfirmed && $('#a_resend')){
-      $('#a_resend').onclick=function(){
-        var email=$('#a_email').value.trim();
-        if(!email) return;
+    if ($('#a_resend')){
+      $('#a_resend').onclick = function(){
+        var email = $('#a_email').value.trim();
+        if (!email) return;
         Auth.resend(email)
           .then(function(){ toast('أُرسل رابط التأكيد — شوف بريدك','ok'); })
           .catch(function(e){ toast(errMsg(e),'bad'); });
@@ -436,29 +437,32 @@ function renderAuth(){
   }
 }
 
+/* ============================== الهيكل ============================== */
 function shell(nav, view){
   var items = nav.map(function(n){
-    return '<a href="#/'+n.r+'" class="'+(S.route===n.r?'on':'')+'">'+esc(n.l)+'</a>';
+    return '<a href="#/' + n.r + '" class="' + (S.route===n.r ? 'on' : '') + '">' + esc(n.l) + '</a>';
   }).join('');
-  return '<div class="top">'+
-      '<div class="logo"><span class="dot"></span>'+esc(t('appName'))+'</div>'+
-      '<span class="spacer"></span>'+
-      '<button class="iconbtn" id="b_lang">'+esc(t('lang'))+'</button>'+
-      '<button class="iconbtn" id="b_theme">'+esc(t(theme==='dark'?'light':'dark'))+'</button>'+
-      '<button class="iconbtn" id="b_out">'+esc(t('logout'))+'</button>'+
-    '</div>'+
-    '<div class="layout"><aside class="side">'+items+'</aside>'+
-    '<main class="main" id="view">'+view+'</main></div>';
+  return `
+  <div class="top">
+    <div class="logo"><span class="dot"></span>${esc(t('appName'))}</div>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="b_lang">${esc(t('lang'))}</button>
+    <button class="iconbtn" id="b_theme">${esc(t(theme==='dark' ? 'light' : 'dark'))}</button>
+    <button class="iconbtn" id="b_out">${esc(t('logout'))}</button>
+  </div>
+  <div class="layout">
+    <aside class="side">${items}</aside>
+    <main class="main" id="view">${view}</main>
+  </div>`;
 }
 function bindChrome(){
-  $('#b_lang').onclick=function(){ lang = lang==='ar'?'en':'ar'; LS.set('mn_lang',lang); applyChrome(); render(); };
-  $('#b_theme').onclick=function(){ theme = theme==='dark'?'light':'dark'; LS.set('mn_theme',theme); applyChrome(); render(); };
-  $('#b_out').onclick=function(){ Auth.logout().then(function(){ location.hash=''; render(); }); };
+  $('#b_lang').onclick  = function(){ lang = (lang==='ar'?'en':'ar'); LS.set('mn_lang',lang); applyChrome(); render(); };
+  $('#b_theme').onclick = function(){ theme = (theme==='dark'?'light':'dark'); LS.set('mn_theme',theme); applyChrome(); render(); };
+  $('#b_out').onclick   = function(){ Auth.logout().then(function(){ location.hash=''; render(); }); };
 }
-
 function loadMe(){
   var saved = LS.get('mn_session', null);
-  if(!saved || !saved.access_token){ clearSession(); return Promise.resolve(); }
+  if (!saved || !saved.access_token) { clearSession(); return Promise.resolve(); }
   token = saved.access_token;
   return Auth.me().then(function(u){
     S.session = { user:u };
@@ -467,57 +471,68 @@ function loadMe(){
     return Promise.all([p,r]).then(function(res){
       S.profile = res[0] || { id:u.id, full_name:(u.email||'').split('@')[0], status:'active' };
       S.roles = (res[1]||[]).map(function(x){ return x.role; });
-      if(S.roles.indexOf('student')<0) S.roles.push('student');
+      if (S.roles.indexOf('student') < 0) S.roles.push('student');
     });
-  }).catch(function(){
-    clearSession();
-  });
+  }).catch(function(){ clearSession(); });
 }
 
-/* ==============================================================
-   شاشات الطالب
-   ============================================================== */
+/* ============================== شاشات الطالب ============================== */
 function viewStudentHome(){
   return db.rpc('my_library').then(function(lib){
-    lib = lib||[];
-    var byCourse={};
+    lib = lib || [];
+    var byCourse = {};
     lib.forEach(function(r){
-      var k=r.course_id;
+      var k = r.course_id;
       byCourse[k] = byCourse[k] || { course_id:k, title_ar:r.course_title_ar, title_en:r.course_title_en, exp:r.expires_at, subs:[] };
-      if(r.subject_id) byCourse[k].subs.push(r);
+      if (r.subject_id) byCourse[k].subs.push(r);
     });
     var cards = Object.keys(byCourse).map(function(k){
-      var c=byCourse[k];
-      var done=c.subs.reduce(function(a,s){ return a+(s.lessons_done||0); },0);
-      var tot =c.subs.reduce(function(a,s){ return a+(s.lessons_total||0); },0);
-      var p = tot?Math.round(done*100/tot):0;
-      return '<div class="card">'+
-        '<div class="row"><h3 class="grow">'+esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))+'</h3>'+
-        '<span class="tag '+(c.exp?'warn':'ok')+'">'+(c.exp?('حتى '+new Date(c.exp).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')):'دائم')+'</span></div>'+
-        '<div class="row" style="margin:8px 0"><div class="bar grow"><i style="width:'+p+'%"></i></div><span class="mut">'+p+'%</span></div>'+
-        c.subs.map(function(s){
-          return '<div class="lesson"><div class="grow"><b>'+esc(lang==='ar'?s.subject_title_ar:(s.subject_title_en||s.subject_title_ar))+'</b>'+
-          '<div class="mut">'+(s.lessons_done||0)+' / '+(s.lessons_total||0)+' '+esc(t('lessons'))+'</div></div>'+
-          '<a class="btn btn-s btn-p" href="#/subject/'+s.subject_id+'">'+esc(t('open'))+'</a></div>';
-        }).join('')+
-      '</div>';
+      var c = byCourse[k];
+      var done = c.subs.reduce(function(a,s){ return a + num(s.lessons_done); }, 0);
+      var tot  = c.subs.reduce(function(a,s){ return a + num(s.lessons_total); }, 0);
+      var p = tot ? Math.round(done*100/tot) : 0;
+      var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
+      var expTag = c.exp
+        ? '<span class="tag warn">حتى ' + esc(new Date(c.exp).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) + '</span>'
+        : '<span class="tag ok">دائم</span>';
+      var rows = c.subs.map(function(s){
+        var st = (lang==='ar' ? s.subject_title_ar : (s.subject_title_en || s.subject_title_ar));
+        return `
+        <div class="lesson">
+          <div class="grow"><b>${esc(st)}</b>
+            <div class="mut">${num(s.lessons_done)} / ${num(s.lessons_total)} ${esc(t('lessons'))}</div>
+          </div>
+          <a class="btn btn-s btn-p" href="#/subject/${s.subject_id}">${esc(t('open'))}</a>
+        </div>`;
+      }).join('');
+      return `
+      <div class="card">
+        <div class="row"><h3 class="grow">${esc(title)}</h3>${expTag}</div>
+        <div class="row" style="margin:8px 0"><div class="bar grow"><i style="width:${p}%"></i></div><span class="mut">${p}%</span></div>
+        ${rows}
+      </div>`;
     }).join('');
 
-    return '<h1>'+esc(t('welcome'))+'، '+esc(S.profile&&S.profile.full_name)+' 👋</h1>'+
-      '<p class="mut">'+esc(t('tagline'))+'</p>'+
-      '<div class="card"><h2>'+esc(t('activateCode'))+'</h2>'+
-        '<div class="row"><input id="cd" class="grow mono" placeholder="XXXXXXXXXXXX" maxlength="24" style="text-transform:uppercase">'+
-        '<button class="btn btn-g" id="cd_go">'+esc(t('activateBtn'))+'</button></div>'+
-        '<p class="mut" style="margin-top:8px">'+esc(t('payFirst'))+'</p></div>'+
-      '<h2 style="margin-top:18px">'+esc(t('myLearning'))+'</h2>'+
-      (cards || '<div class="card mut">'+esc(t('noLibrary'))+'</div>');
+    return `
+    <h1>${esc(t('welcome'))}، ${esc(S.profile && S.profile.full_name)}</h1>
+    <p class="mut">${esc(t('tagline'))}</p>
+    <div class="card">
+      <h2>${esc(t('activateCode'))}</h2>
+      <div class="row">
+        <input id="cd" class="grow mono" placeholder="XXXXXXXXXXXX" maxlength="24" style="text-transform:uppercase">
+        <button class="btn btn-g" id="cd_go">${esc(t('activateBtn'))}</button>
+      </div>
+      <p class="mut" style="margin-top:8px">${esc(t('payFirst'))}</p>
+    </div>
+    <h2 style="margin-top:18px">${esc(t('myLearning'))}</h2>
+    ${cards || '<div class="card mut">' + esc(t('noLibrary')) + '</div>'}`;
   });
 }
 function bindStudentHome(){
-  $('#cd_go').onclick=function(){
-    var code=$('#cd').value.trim();
-    if(!code){ toast(t('err'),'bad'); return; }
-    db.rpc('activate_code',{p_code:code})
+  $('#cd_go').onclick = function(){
+    var code = $('#cd').value.trim();
+    if (!code) return toast(t('err'),'bad');
+    db.rpc('activate_code', { p_code:code })
       .then(function(){ toast(t('activated'),'ok'); $('#cd').value=''; render(); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
@@ -525,16 +540,21 @@ function bindStudentHome(){
 
 function viewCatalog(){
   return db.select('courses','status=eq.published&order=sort_order').then(function(courses){
-    courses=courses||[];
-    return '<h1>'+esc(t('catalog'))+'</h1><div class="grid">'+
-      (courses.map(function(c){
-        return '<a class="card" href="#/course/'+c.id+'">'+
-          '<span class="tag gold">'+esc(c.level)+'</span>'+
-          '<h3 style="margin-top:8px">'+esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))+'</h3>'+
-          '<p class="mut">'+esc(String(lang==='ar'?c.desc_ar:(c.desc_en||c.desc_ar)).slice(0,110))+'…</p>'+
-          '<div class="row"><span class="tag">'+c.price+' '+esc(c.currency)+'</span></div></a>';
-      }).join('') || '<div class="card mut">'+esc(t('noCourses'))+'</div>')+
-    '</div>';
+    courses = courses || [];
+    var cards = courses.map(function(c){
+      var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
+      var desc  = String((lang==='ar' ? c.desc_ar : (c.desc_en || c.desc_ar))).slice(0,110);
+      return `
+      <a class="card" href="#/course/${c.id}">
+        <span class="tag gold">${esc(c.level)}</span>
+        <h3 style="margin-top:8px">${esc(title)}</h3>
+        <p class="mut">${esc(desc)}…</p>
+        <div class="row"><span class="tag">${c.price} ${esc(c.currency)}</span></div>
+      </a>`;
+    }).join('');
+    return `
+    <h1>${esc(t('catalog'))}</h1>
+    <div class="grid">${cards || '<div class="card mut">' + esc(t('noCourses')) + '</div>'}</div>`;
   });
 }
 
@@ -544,23 +564,34 @@ function viewCourse(id){
     db.select('subjects','course_id=eq.'+id+'&status=eq.published&order=sort_order'),
     db.rpc('my_library').catch(function(){ return []; })
   ]).then(function(res){
-    var c=res[0], subs=res[1]||[], lib=res[2]||[];
-    if(!c) return '<div class="card">'+esc(t('notFound'))+'</div>';
-    var owned={}; lib.forEach(function(r){ if(r.subject_id) owned[r.subject_id]=1; });
-    var ownedCourse = lib.some(function(r){ return r.course_id===id; });
-    return '<div class="row"><a class="btn btn-s" href="#/catalog">← '+esc(t('back'))+'</a></div>'+
-      '<div class="card" style="margin-top:12px">'+
-        '<span class="tag gold">'+esc(c.level)+' · '+c.price+' '+esc(c.currency)+'</span>'+
-        '<h1 style="margin-top:8px">'+esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))+'</h1>'+
-        '<p class="mut">'+esc(lang==='ar'?c.desc_ar:(c.desc_en||c.desc_ar))+'</p></div>'+
-      '<h2>'+esc(t('subject'))+'</h2>'+
-      subs.map(function(s){
-        var has = owned[s.id]||ownedCourse;
-        return '<div class="lesson"><div class="grow"><b>'+esc(lang==='ar'?s.title_ar:(s.title_en||s.title_ar))+'</b></div>'+
-          (has ? '<a class="btn btn-s btn-p" href="#/subject/'+s.id+'">'+esc(t('open'))+'</a>'
-               : '<span class="tag lock">🔒 '+esc(t('locked'))+'</span>')+
-        '</div>';
-      }).join('');
+    var c = res[0], subs = res[1] || [], lib = res[2] || [];
+    if (!c) return '<div class="card">' + esc(t('notFound')) + '</div>';
+    var owned = {};
+    lib.forEach(function(r){ if (r.subject_id) owned[r.subject_id] = 1; });
+    var ownedCourse = lib.some(function(r){ return r.course_id === id; });
+    var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
+    var desc  = (lang==='ar' ? c.desc_ar : (c.desc_en || c.desc_ar));
+    var rows = subs.map(function(s){
+      var st = (lang==='ar' ? s.title_ar : (s.title_en || s.title_ar));
+      var has = owned[s.id] || ownedCourse;
+      var btn = has
+        ? '<a class="btn btn-s btn-p" href="#/subject/' + s.id + '">' + esc(t('open')) + '</a>'
+        : '<span class="tag lock">مقفول</span>';
+      return `
+      <div class="lesson">
+        <div class="grow"><b>${esc(st)}</b></div>
+        ${btn}
+      </div>`;
+    }).join('');
+    return `
+    <div class="row"><a class="btn btn-s" href="#/catalog">← ${esc(t('back'))}</a></div>
+    <div class="card" style="margin-top:12px">
+      <span class="tag gold">${esc(c.level)} · ${c.price} ${esc(c.currency)}</span>
+      <h1 style="margin-top:8px">${esc(title)}</h1>
+      <p class="mut">${esc(desc)}</p>
+    </div>
+    <h2>${esc(t('subject'))}</h2>
+    ${rows}`;
   });
 }
 
@@ -569,281 +600,360 @@ function viewSubject(id){
     db.one('subjects','id=eq.'+id),
     db.select('units','subject_id=eq.'+id+'&order=sort_order')
   ]).then(function(res){
-    var s=res[0], units=res[1]||[];
-    if(!s) return '<div class="card">'+esc(t('notFound'))+'</div>';
-    if(!units.length) return '<div class="card mut">لا توجد وحدات بعد</div>';
-    return db.select('lessons','unit_id=in.'+inList(units.map(function(u){return u.id;}))+'&status=eq.published&order=sort_order')
+    var s = res[0], units = res[1] || [];
+    if (!s) return '<div class="card">' + esc(t('notFound')) + '</div>';
+    if (!units.length) return '<div class="card mut">لا توجد وحدات بعد</div>';
+    return db.select('lessons','unit_id=in.' + inList(units.map(function(u){ return u.id; })) + '&status=eq.published&order=sort_order')
       .then(function(lessons){
-        lessons=lessons||[];
+        lessons = lessons || [];
         return db.select('lesson_progress').then(function(prog){
-          prog=prog||[];
-          var pm={}; prog.forEach(function(p){ pm[p.lesson_id]=p; });
-          var un={}; units.forEach(function(u){ un[u.id]=lang==='ar'?u.title_ar:(u.title_en||u.title_ar); });
-          var done=lessons.filter(function(l){ return pm[l.id]&&pm[l.id].completed_at; }).length;
-          var pct = lessons.length?Math.round(done*100/lessons.length):0;
-          return '<div class="row"><a class="btn btn-s" href="#/course/'+s.course_id+'">← '+esc(t('back'))+'</a></div>'+
-            '<div class="card" style="margin-top:12px">'+
-              '<h1>'+esc(lang==='ar'?s.title_ar:(s.title_en||s.title_ar))+'</h1>'+
-              '<div class="row" style="margin-top:8px"><div class="bar grow"><i style="width:'+pct+'%"></i></div>'+
-              '<span class="mut">'+done+'/'+lessons.length+'</span></div></div>'+
-            lessons.map(function(l){
-              var d=pm[l.id];
-              return '<div class="lesson"><div class="grow"><b>'+esc(lang==='ar'?l.title_ar:(l.title_en||l.title_ar))+'</b>'+
-                '<div class="mut">'+esc(un[l.unit_id]||'')+' · '+Math.round(l.duration_seconds/60)+' '+esc(t('minutes'))+'</div></div>'+
-                (l.is_free_preview?'<span class="tag ok">'+esc(t('preview'))+'</span>':'')+
-                (d&&d.completed_at?'<span class="tag ok">✓</span>':'')+
-                '<a class="btn btn-s '+(d&&d.completed_at?'':'btn-p')+'" href="#/lesson/'+l.id+'">'+esc(t('open'))+'</a></div>';
-            }).join('');
+          prog = prog || [];
+          var pm = {};
+          prog.forEach(function(p){ pm[p.lesson_id] = p; });
+          var un = {};
+          units.forEach(function(u){ un[u.id] = (lang==='ar' ? u.title_ar : (u.title_en || u.title_ar)); });
+          var done = lessons.filter(function(l){ return pm[l.id] && pm[l.id].completed_at; }).length;
+          var pct = lessons.length ? Math.round(done*100/lessons.length) : 0;
+          var title = (lang==='ar' ? s.title_ar : (s.title_en || s.title_ar));
+          var rows = lessons.map(function(l){
+            var d = pm[l.id];
+            var lt = (lang==='ar' ? l.title_ar : (l.title_en || l.title_ar));
+            return `
+            <div class="lesson">
+              <div class="grow"><b>${esc(lt)}</b>
+                <div class="mut">${esc(un[l.unit_id] || '')} · ${Math.round(l.duration_seconds/60)} ${esc(t('minutes'))}</div>
+              </div>
+              ${l.is_free_preview ? '<span class="tag ok">' + esc(t('preview')) + '</span>' : ''}
+              ${(d && d.completed_at) ? '<span class="tag ok">تم</span>' : ''}
+              <a class="btn btn-s ${(d && d.completed_at) ? '' : 'btn-p'}" href="#/lesson/${l.id}">${esc(t('open'))}</a>
+            </div>`;
+          }).join('');
+          return `
+          <div class="row"><a class="btn btn-s" href="#/course/${s.course_id}">← ${esc(t('back'))}</a></div>
+          <div class="card" style="margin-top:12px">
+            <h1>${esc(title)}</h1>
+            <div class="row" style="margin-top:8px">
+              <div class="bar grow"><i style="width:${pct}%"></i></div>
+              <span class="mut">${done}/${lessons.length}</span>
+            </div>
+          </div>
+          ${rows}`;
         });
       });
   });
 }
 
 function viewLesson(id){
-  return db.one('lessons','id=eq.'+id+'&select=*,lesson_content(*)').then(function(l){
-    if(!l) return '<div class="card">'+esc(t('notFound'))+'</div>';
+  return db.one('lessons','id=eq.' + id + '&select=*,lesson_content(*)').then(function(l){
+    if (!l) return '<div class="card">' + esc(t('notFound')) + '</div>';
     var c = Array.isArray(l.lesson_content) ? l.lesson_content[0] : l.lesson_content;
     var locked = !c;
-    return '<div class="row"><a class="btn btn-s" href="javascript:history.back()">← '+esc(t('back'))+'</a></div>'+
-      '<div class="card" style="margin-top:12px">'+
-        '<h1>'+esc(lang==='ar'?l.title_ar:(l.title_en||l.title_ar))+'</h1>'+
-        (locked
-          ? '<div class="tag warn" style="margin-top:10px">🔒 '+esc(t('locked'))+'</div>'+
-            '<p class="mut" style="margin-top:10px">'+esc(t('contentSoon'))+'</p>'
-          : '<div style="margin:12px 0;background:#000;border-radius:10px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#888">'+esc(t('contentSoon'))+'</div>'+
-            (c.body?'<p>'+esc(c.body)+'</p>':'')+
-            ((c.attachments&&c.attachments.length)
-              ? '<h3>مرفقات</h3>'+c.attachments.map(function(a){
-                  return '<div class="lesson"><span class="grow">📎 '+esc(a.name||a.url)+'</span>'+
-                    '<a class="btn btn-s" target="_blank" href="'+esc(a.url)+'">فتح</a></div>';
-                }).join('') : ''))+
-        '<div class="row" style="margin-top:14px">'+
-          '<button class="btn btn-p" id="mk_done">'+esc(t('markDone'))+'</button>'+
-        '</div></div>';
+    var title = (lang==='ar' ? l.title_ar : (l.title_en || l.title_ar));
+    var atts = '';
+    if (c && c.attachments && c.attachments.length){
+      atts = '<h3>مرفقات</h3>' + c.attachments.map(function(a){
+        return `
+        <div class="lesson">
+          <span class="grow">مرفق: ${esc(a.name || a.url)}</span>
+          <a class="btn btn-s" target="_blank" href="${esc(a.url)}">فتح</a>
+        </div>`;
+      }).join('');
+    }
+    var body = locked
+      ? '<div class="tag warn" style="margin-top:10px">مقفول</div><p class="mut" style="margin-top:10px">' + esc(t('contentSoon')) + '</p>'
+      : '<div class="mut" style="margin:12px 0;padding:20px;border:1px dashed var(--bd);border-radius:10px">' + esc(t('contentSoon')) + '</div>'
+        + (c.body ? '<p>' + esc(c.body) + '</p>' : '') + atts;
+    return `
+    <div class="row"><a class="btn btn-s" href="javascript:history.back()">← ${esc(t('back'))}</a></div>
+    <div class="card" style="margin-top:12px">
+      <h1>${esc(title)}</h1>
+      ${body}
+      <div class="row" style="margin-top:14px">
+        <button class="btn btn-p" id="mk_done">${esc(t('markDone'))}</button>
+      </div>
+    </div>`;
   });
 }
 function bindLesson(id){
-  var b=$('#mk_done'); if(!b) return;
-  b.onclick=function(){
-    db.rpc('mark_lesson',{p_lesson_id:id,p_completed:true,p_position:0})
+  var b = $('#mk_done');
+  if (!b) return;
+  b.onclick = function(){
+    db.rpc('mark_lesson', { p_lesson_id:id, p_completed:true, p_position:0 })
       .then(function(){ toast('تم','ok'); render(); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
 
 function viewProfile(){
-  return '<h1>'+esc(t('profile'))+'</h1>'+
-    '<div class="card">'+
-      '<label>'+esc(t('name'))+'</label><input id="p_name" value="'+esc(S.profile&&S.profile.full_name)+'">'+
-      '<label>'+esc(t('email'))+'</label><input value="'+esc(S.session&&S.session.user&&S.session.user.email)+'" disabled>'+
-      '<div class="row" style="margin-top:14px"><button class="btn btn-p" id="p_save">'+esc(t('save2'))+'</button></div></div>'+
-    '<div class="card"><h2>'+esc(t('password'))+'</h2>'+
-      '<label>'+esc(t('password'))+'</label><input id="p_new" type="password">'+
-      '<div class="row" style="margin-top:12px"><button class="btn" id="p_pwd">'+esc(t('save2'))+'</button></div></div>';
+  return `
+  <h1>${esc(t('profile'))}</h1>
+  <div class="card">
+    <label>${esc(t('name'))}</label>
+    <input id="p_name" value="${esc(S.profile && S.profile.full_name)}">
+    <label>${esc(t('email'))}</label>
+    <input value="${esc(S.session && S.session.user && S.session.user.email)}" disabled>
+    <div class="row" style="margin-top:14px"><button class="btn btn-p" id="p_save">${esc(t('save2'))}</button></div>
+  </div>
+  <div class="card">
+    <h2>${esc(t('password'))}</h2>
+    <label>${esc(t('password'))}</label>
+    <input id="p_new" type="password">
+    <div class="row" style="margin-top:12px"><button class="btn" id="p_pwd">${esc(t('save2'))}</button></div>
+  </div>`;
 }
 function bindProfile(){
-  $('#p_save').onclick=function(){
-    var name=$('#p_name').value.trim();
-    db.update('profiles','id=eq.'+S.session.user.id,{full_name:name,updated_at:new Date().toISOString()})
+  $('#p_save').onclick = function(){
+    var name = $('#p_name').value.trim();
+    db.update('profiles','id=eq.'+S.session.user.id, { full_name:name, updated_at:new Date().toISOString() })
       .then(function(){ toast('تم','ok'); return loadMe().then(render); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
-  $('#p_pwd').onclick=function(){
-    var p=$('#p_new').value;
-    if(p.length<8){ toast('كلمة المرور 8 أحرف على الأقل','bad'); return; }
-    Auth.update({password:p})
+  $('#p_pwd').onclick = function(){
+    var p = $('#p_new').value;
+    if (p.length < 8) return toast('كلمة المرور 8 أحرف على الأقل','bad');
+    Auth.update({ password:p })
       .then(function(){ toast('تم تغيير كلمة المرور','ok'); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
 
-/* ==============================================================
-   شاشات الموظف والإدارة
-   ============================================================== */
+/* ============================== شاشات الموظف ============================== */
 function deskNav(){
-  var staff = S.roles.indexOf('enrollment_officer')>=0 || S.roles.indexOf('super_admin')>=0;
-  var n=[];
-  if(S.roles.indexOf('student')>=0 && !staff) n.push({r:'home',l:t('home')});
-  if(staff){
-    n.push({r:'desk',l:t('officerHome')},{r:'find',l:t('findStudent')},{r:'pay',l:t('confirmPay')},
-           {r:'issue',l:t('issueCode')},{r:'mycodes',l:t('myCodes')});
+  var staff = (S.roles.indexOf('enrollment_officer') >= 0) || (S.roles.indexOf('super_admin') >= 0);
+  var n = [];
+  if (S.roles.indexOf('student') >= 0 && !staff) n.push({ r:'home', l:t('home') });
+  if (staff){
+    n.push({ r:'desk', l:t('officerHome') });
+    n.push({ r:'find', l:t('findStudent') });
+    n.push({ r:'pay',  l:t('confirmPay') });
+    n.push({ r:'issue', l:t('issueCode') });
+    n.push({ r:'mycodes', l:t('myCodes') });
   }
-  if(S.roles.indexOf('super_admin')>=0){
-    n.push({r:'admin',l:t('adminHome')},{r:'users',l:t('users')},{r:'payments',l:t('payments')},{r:'audit',l:t('audit')});
+  if (S.roles.indexOf('super_admin') >= 0){
+    n.push({ r:'admin', l:t('adminHome') });
+    n.push({ r:'users', l:t('users') });
+    n.push({ r:'payments', l:t('payments') });
+    n.push({ r:'audit', l:t('audit') });
   }
-  if(!staff) n.push({r:'catalog',l:t('catalog')});
-  n.push({r:'profile',l:t('profile')});
+  if (!staff) n.push({ r:'catalog', l:t('catalog') });
+  n.push({ r:'profile', l:t('profile') });
   return n;
 }
 
 function viewDesk(){
-  var isAdmin = S.roles.indexOf('super_admin')>=0;
-  var p = isAdmin ? db.rpc('admin_dashboard') : db.rpc('my_issued_codes',{p_days:30}).then(function(c){ return {codes:(c||[]).length}; });
+  var isAdmin = (S.roles.indexOf('super_admin') >= 0);
+  var p = isAdmin
+    ? db.rpc('admin_dashboard')
+    : db.rpc('my_issued_codes', { p_days:30 }).then(function(c){ return { codes:(c||[]).length }; });
   return p.then(function(d){
-    d=d||{};
-    function k(l,v){ return '<div class="kpi"><span class="mut">'+esc(l)+'</span><b>'+esc(v==null?0:v)+'</b></div>'; }
-    return '<h1>'+esc(t('officerHome'))+'</h1><div class="grid">'+
-      k(t('students'), d.students_total)+
-      k(t('paymentsCount'), d.payments_count)+
-      k(t('total'), d.payments_total)+
-      k(t('myCodes'), d.codes_used||d.codes||0)+
-    '</div>'+
-    '<div class="card"><h2>'+esc(t('findStudent'))+'</h2><p class="mut">'+esc(t('payFirst'))+'</p>'+
-      '<div class="row" style="margin-top:10px">'+
-        '<a class="btn btn-p" href="#/find">'+esc(t('search'))+'</a>'+
-        '<a class="btn" href="#/issue">'+esc(t('issueCode'))+'</a>'+
-        '<a class="btn" href="#/mycodes">'+esc(t('myCodes'))+'</a>'+
-      '</div></div>';
+    d = d || {};
+    function k(l,v){ return '<div class="kpi"><span class="mut">' + esc(l) + '</span><b>' + esc(v==null?0:v) + '</b></div>'; }
+    return `
+    <h1>${esc(t('officerHome'))}</h1>
+    <div class="grid">
+      ${k(t('students'), d.students_total)}
+      ${k(t('paymentsCount'), d.payments_count)}
+      ${k(t('total'), d.payments_total)}
+      ${k(t('myCodes'), d.codes_used || d.codes || 0)}
+    </div>
+    <div class="card">
+      <h2>${esc(t('findStudent'))}</h2>
+      <p class="mut">${esc(t('payFirst'))}</p>
+      <div class="row" style="margin-top:10px">
+        <a class="btn btn-p" href="#/find">${esc(t('search'))}</a>
+        <a class="btn" href="#/issue">${esc(t('issueCode'))}</a>
+        <a class="btn" href="#/mycodes">${esc(t('myCodes'))}</a>
+      </div>
+    </div>`;
   });
 }
 
 function viewFind(){
-  var res=S.lastStudent;
-  var card='';
-  if(res){
-    if(!res.found){
-      card='<div class="card"><span class="tag bad">'+esc(t('notFound'))+'</span></div>';
-    }else{
-      var ent=(res.enrollments||[]).map(function(e){
-        return '<tr><td>'+esc(e.course||'')+'</td><td>'+esc(e.subject||'—')+'</td>'+
-          '<td><span class="tag '+(e.status==='active'?'ok':'bad')+'">'+esc(e.status)+'</span></td>'+
-          '<td class="mono">'+(e.expires_at?new Date(e.expires_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB'):'—')+'</td></tr>';
+  var res = S.lastStudent;
+  var card = '';
+  if (res){
+    if (!res.found){
+      card = '<div class="card"><span class="tag bad">' + esc(t('notFound')) + '</span></div>';
+    } else {
+      var ent = (res.enrollments || []).map(function(e){
+        return `
+        <tr>
+          <td>${esc(e.course || '')}</td>
+          <td>${esc(e.subject || '—')}</td>
+          <td><span class="tag ${e.status==='active'?'ok':'bad'}">${esc(e.status)}</span></td>
+          <td class="mono">${e.expires_at ? esc(new Date(e.expires_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) : '—'}</td>
+        </tr>`;
       }).join('');
-      card='<div class="card"><div class="row">'+
-          '<h2 class="grow">'+esc(res.name)+'</h2>'+
-          '<span class="tag '+(res.status==='active'?'ok':'warn')+'">'+esc(res.status)+'</span>'+
-          (res.email_confirmed?'':'<span class="tag warn">بريد غير مؤكد</span>')+
-        '</div>'+
-        '<p class="mut mono">'+esc(res.email_masked)+' · '+esc(res.phone_masked||'—')+' · '+
-          new Date(res.created_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')+'</p>'+
-        '<h3 style="margin-top:14px">التسجيلات</h3>'+
-        '<table><thead><tr><th>'+esc(t('course'))+'</th><th>'+esc(t('subject'))+'</th><th>'+esc(t('status'))+'</th><th>ينتهي</th></tr></thead>'+
-        '<tbody>'+(ent||'<tr><td colspan="4" class="mut">—</td></tr>')+'</tbody></table>'+
-        '<div class="row" style="margin-top:14px"><a class="btn btn-g" href="#/pay?email='+encodeURIComponent(S.findEmail||'')+'">'+esc(t('confirmPay'))+'</a></div></div>';
+      card = `
+      <div class="card">
+        <div class="row">
+          <h2 class="grow">${esc(res.name)}</h2>
+          <span class="tag ${res.status==='active'?'ok':'warn'}">${esc(res.status)}</span>
+          ${res.email_confirmed ? '' : '<span class="tag warn">بريد غير مؤكد</span>'}
+        </div>
+        <p class="mut mono">${esc(res.email_masked)} · ${esc(res.phone_masked || '—')} · ${esc(new Date(res.created_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB'))}</p>
+        <h3 style="margin-top:14px">التسجيلات</h3>
+        <table>
+          <thead><tr><th>${esc(t('course'))}</th><th>${esc(t('subject'))}</th><th>${esc(t('status'))}</th><th>ينتهي</th></tr></thead>
+          <tbody>${ent || '<tr><td colspan="4" class="mut">—</td></tr>'}</tbody>
+        </table>
+        <div class="row" style="margin-top:14px">
+          <a class="btn btn-g" href="#/pay?email=${encodeURIComponent(S.findEmail || '')}">${esc(t('confirmPay'))}</a>
+        </div>
+      </div>`;
     }
   }
-  return '<h1>'+esc(t('findStudent'))+'</h1>'+
-    '<div class="card"><div class="row">'+
-      '<input id="f_email" class="grow" type="email" placeholder="student@example.com" value="'+esc(S.findEmail||'')+'">'+
-      '<button class="btn btn-p" id="f_go">'+esc(t('search'))+'</button></div>'+
-      '<p class="mut" style="margin-top:6px">البحث بالبريد المسجّل فقط · exact email only</p></div>'+card;
+  return `
+  <h1>${esc(t('findStudent'))}</h1>
+  <div class="card">
+    <div class="row">
+      <input id="f_email" class="grow" type="email" placeholder="student@example.com" value="${esc(S.findEmail || '')}">
+      <button class="btn btn-p" id="f_go">${esc(t('search'))}</button>
+    </div>
+    <p class="mut" style="margin-top:6px">البحث بالبريد المسجّل فقط</p>
+  </div>
+  ${card}`;
 }
 function bindFind(){
-  $('#f_go').onclick=function(){
-    var email=$('#f_email').value.trim();
-    if(!email){ toast(t('err'),'bad'); return; }
-    S.findEmail=email;
-    db.rpc('search_student',{p_email:email})
-      .then(function(d){ S.lastStudent=d; render(); })
+  $('#f_go').onclick = function(){
+    var email = $('#f_email').value.trim();
+    if (!email) return toast(t('err'),'bad');
+    S.findEmail = email;
+    db.rpc('search_student', { p_email:email })
+      .then(function(d){ S.lastStudent = d; render(); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
 
 function viewPay(){
-  var q = new URLSearchParams(location.hash.split('?')[1]||'');
+  var q = new URLSearchParams(location.hash.split('?')[1] || '');
   var pre = q.get('email') || S.findEmail || '';
   return db.select('courses','order=title_ar').then(function(courses){
-    return '<h1>'+esc(t('confirmPay'))+'</h1><div class="card">'+
-      '<label>'+esc(t('studentEmail'))+'</label><input id="pay_email" type="email" value="'+esc(pre)+'">'+
-      '<label>'+esc(t('course'))+'</label>'+
-      '<select id="pay_course">'+(courses||[]).map(function(c){
-        return '<option value="'+c.id+'">'+esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))+' — '+c.price+' '+esc(c.currency)+'</option>';
-      }).join('')+'</select>'+
-      '<div class="row">'+
-        '<div class="grow"><label>'+esc(t('amount'))+'</label><input id="pay_amount" type="number" min="0" step="0.01"></div>'+
-        '<div class="grow"><label>'+esc(t('currency'))+'</label><input id="pay_currency" value="EGP"></div>'+
-      '</div>'+
-      '<label>'+esc(t('receipt'))+'</label><input id="pay_receipt">'+
-      '<label>'+esc(t('notes'))+'</label><input id="pay_notes">'+
-      '<div class="row" style="margin-top:16px"><button class="btn btn-p" id="pay_go">'+esc(t('confirmPayment'))+'</button></div>'+
-    '</div><div class="card hidden" id="pay_next"></div>';
+    var opts = (courses || []).map(function(c){
+      var title = (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar));
+      return '<option value="' + c.id + '">' + esc(title) + ' — ' + c.price + ' ' + esc(c.currency) + '</option>';
+    }).join('');
+    return `
+    <h1>${esc(t('confirmPay'))}</h1>
+    <div class="card">
+      <label>${esc(t('studentEmail'))}</label>
+      <input id="pay_email" type="email" value="${esc(pre)}">
+      <label>${esc(t('course'))}</label>
+      <select id="pay_course">${opts}</select>
+      <div class="row">
+        <div class="grow"><label>${esc(t('amount'))}</label><input id="pay_amount" type="number" min="0" step="0.01"></div>
+        <div class="grow"><label>${esc(t('currency'))}</label><input id="pay_currency" value="EGP"></div>
+      </div>
+      <label>${esc(t('receipt'))}</label><input id="pay_receipt">
+      <label>${esc(t('notes'))}</label><input id="pay_notes">
+      <div class="row" style="margin-top:16px"><button class="btn btn-p" id="pay_go">${esc(t('confirmPayment'))}</button></div>
+    </div>
+    <div class="card hidden" id="pay_next"></div>`;
   });
 }
 function bindPay(){
-  $('#pay_go').onclick=function(){
-    var email=$('#pay_email').value.trim(), amt=Number($('#pay_amount').value||0);
-    if(!email||!amt){ toast(t('err'),'bad'); return; }
-    db.rpc('confirm_payment',{
-      p_student_email:email,
-      p_course_id:$('#pay_course').value,
-      p_amount:amt,
-      p_currency:$('#pay_currency').value.trim()||'EGP',
-      p_receipt_ref:$('#pay_receipt').value.trim()||null,
-      p_notes:$('#pay_notes').value.trim()||null
+  $('#pay_go').onclick = function(){
+    var email = $('#pay_email').value.trim();
+    var amt = num($('#pay_amount').value);
+    if (!email || !amt) return toast(t('err'),'bad');
+    db.rpc('confirm_payment', {
+      p_student_email: email,
+      p_course_id: $('#pay_course').value,
+      p_amount: amt,
+      p_currency: ($('#pay_currency').value.trim() || 'EGP'),
+      p_receipt_ref: ($('#pay_receipt').value.trim() || null),
+      p_notes: ($('#pay_notes').value.trim() || null)
     }).then(function(d){
       toast(t('paymentDone'),'ok');
-      var box=$('#pay_next'); box.classList.remove('hidden');
-      box.innerHTML='<h2>✅ '+esc(t('paymentDone'))+'</h2><p class="mut">'+esc(d.student_name)+'</p>'+
-        '<div class="row" style="margin-top:10px">'+
-          '<a class="btn btn-g" href="#/issue?pay='+d.payment_id+'">'+esc(t('issueCode'))+'</a>'+
-          '<a class="btn" href="#/find">'+esc(t('findStudent'))+'</a></div>';
+      var box = $('#pay_next');
+      box.classList.remove('hidden');
+      box.innerHTML = `
+        <h2>${esc(t('paymentDone'))}</h2>
+        <p class="mut">${esc(d.student_name)}</p>
+        <div class="row" style="margin-top:10px">
+          <a class="btn btn-g" href="#/issue?pay=${d.payment_id}">${esc(t('issueCode'))}</a>
+          <a class="btn" href="#/find">${esc(t('findStudent'))}</a>
+        </div>`;
     }).catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
 
 function viewIssue(){
-  var q=new URLSearchParams(location.hash.split('?')[1]||'');
-  var payId=q.get('pay')||'';
+  var q = new URLSearchParams(location.hash.split('?')[1] || '');
+  var payId = q.get('pay') || '';
   return Promise.all([
-    db.rpc('officer_recent_payments',{p_limit:15}).catch(function(){ return []; }),
+    db.rpc('officer_recent_payments', { p_limit:15 }).catch(function(){ return []; }),
     db.select('courses','order=title_ar').catch(function(){ return []; }),
     db.select('subjects','order=sort_order').catch(function(){ return []; })
   ]).then(function(res){
-    var pays=res[0]||[], courses=res[1]||[], subs=res[2]||[];
-    var subOpts = subs.map(function(s){
-      var c = courses.filter(function(x){ return x.id===s.course_id; })[0];
-      var cn = c ? (lang==='ar'?c.title_ar:(c.title_en||c.title_ar)) : '';
-      return '<label style="display:flex;gap:8px;align-items:center;margin:4px 0">'+
-        '<input type="checkbox" value="'+s.id+'" style="width:auto;margin:0"> '+esc(s.title_ar)+' <span class="mut">('+esc(cn)+')</span></label>';
+    var pays = res[0] || [], courses = res[1] || [], subs = res[2] || [];
+    var payOpts = pays.map(function(p){
+      return '<option value="' + p.id + '"' + (p.id===payId ? ' selected' : '') + '>' +
+        esc(p.student_name) + ' · ' + esc(p.course) + ' · ' + p.amount + ' ' + esc(p.currency) +
+        ' · ' + esc(new Date(p.at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')) + '</option>';
     }).join('');
-    return '<h1>'+esc(t('issueCode'))+'</h1><div class="card">'+
-      '<label>سجل الدفع</label>'+
-      '<select id="i_pay"><option value="">— اختر سجل دفع —</option>'+
-      pays.map(function(p){
-        return '<option value="'+p.id+'" '+(p.id===payId?'selected':'')+'>'+
-          esc(p.student_name)+' · '+esc(p.course)+' · '+p.amount+' '+esc(p.currency)+
-          ' · '+new Date(p.at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')+'</option>';
-      }).join('')+'</select>'+
-      '<label>'+esc(t('codeType'))+'</label>'+
-      '<select id="i_type"><option value="assigned">'+esc(t('assigned'))+'</option>'+
-        '<option value="voucher">'+esc(t('voucher'))+'</option><option value="campaign">'+esc(t('campaign'))+'</option></select>'+
-      '<label>'+esc(t('scope'))+'</label>'+
-      '<select id="i_scope"><option value="full">'+esc(t('fullCourse'))+'</option><option value="subs">'+esc(t('someSubjects'))+'</option></select>'+
-      '<div id="i_subs" class="hidden" style="margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">'+
-        (subOpts||'<span class="mut">لا توجد مواد</span>')+'</div>'+
-      '<div class="row">'+
-        '<div class="grow"><label>'+esc(t('batchSize'))+'</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>'+
-        '<div class="grow"><label>'+esc(t('maxUses'))}</label><input id="i_uses" type="number" min="1" value="1"></div>'+
-        '<div class="grow"><label>'+esc(t('accessDays'))+'</label><input id="i_days" type="number" min="0" placeholder="∞"></div>'+
-      '</div>'+
-      '<label>'+esc(t('validUntil'))+'</label><input id="i_until" type="date">'+
-      '<label>'+esc(t('notes'))+'</label><input id="i_notes">'+
-      '<div class="row" style="margin-top:16px"><button class="btn btn-g" id="i_go">'+esc(t('issue'))+'</button></div>'+
-    '</div><div id="i_out"></div>';
+    var subOpts = subs.map(function(s){
+      var c = courses.filter(function(x){ return x.id === s.course_id; })[0];
+      var cn = c ? (lang==='ar' ? c.title_ar : (c.title_en || c.title_ar)) : '';
+      return '<label style="display:flex;gap:8px;align-items:center;margin:4px 0">' +
+        '<input type="checkbox" value="' + s.id + '" style="width:auto;margin:0"> ' + esc(s.title_ar) +
+        ' <span class="mut">(' + esc(cn) + ')</span></label>';
+    }).join('');
+    return `
+    <h1>${esc(t('issueCode'))}</h1>
+    <div class="card">
+      <label>سجل الدفع</label>
+      <select id="i_pay"><option value="">— اختر سجل دفع —</option>${payOpts}</select>
+      <label>${esc(t('codeType'))}</label>
+      <select id="i_type">
+        <option value="assigned">${esc(t('assigned'))}</option>
+        <option value="voucher">${esc(t('voucher'))}</option>
+        <option value="campaign">${esc(t('campaign'))}</option>
+      </select>
+      <label>${esc(t('scope'))}</label>
+      <select id="i_scope">
+        <option value="full">${esc(t('fullCourse'))}</option>
+        <option value="subs">${esc(t('someSubjects'))}</option>
+      </select>
+      <div id="i_subs" class="hidden" style="margin-top:8px;max-height:220px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">
+        ${subOpts || '<span class="mut">لا توجد مواد</span>'}
+      </div>
+      <div class="row">
+        <div class="grow"><label>${esc(t('batchSize'))}</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>
+        <div class="grow"><label>${esc(t('maxUses'))}</label><input id="i_uses" type="number" min="1" value="1"></div>
+        <div class="grow"><label>${esc(t('accessDays'))}</label><input id="i_days" type="number" min="0" placeholder="∞"></div>
+      </div>
+      <label>${esc(t('validUntil'))}</label><input id="i_until" type="date">
+      <label>${esc(t('notes'))}</label><input id="i_notes">
+      <div class="row" style="margin-top:16px"><button class="btn btn-g" id="i_go">${esc(t('issue'))}</button></div>
+    </div>
+    <div id="i_out"></div>`;
   });
 }
 function bindIssue(){
-  $('#i_scope').onchange=function(){ $('#i_subs').classList.toggle('hidden', $('#i_scope').value!=='subs'); };
-  $('#i_go').onclick=function(){
-    var payId=$('#i_pay').value;
-    if(!payId){ toast('اختر سجل دفع','bad'); return; }
-    var subs=null;
-    if($('#i_scope').value==='subs'){
-      subs=[].slice.call($('#i_subs').querySelectorAll('input:checked')).map(function(i){ return i.value; });
-      if(!subs.length){ toast('اختر مادة واحدة على الأقل','bad'); return; }
+  $('#i_scope').onchange = function(){
+    $('#i_subs').classList.toggle('hidden', $('#i_scope').value !== 'subs');
+  };
+  $('#i_go').onclick = function(){
+    var payId = $('#i_pay').value;
+    if (!payId) return toast('اختر سجل دفع','bad');
+    var subs = null;
+    if ($('#i_scope').value === 'subs'){
+      subs = [].slice.call($('#i_subs').querySelectorAll('input:checked')).map(function(i){ return i.value; });
+      if (!subs.length) return toast('اختر مادة واحدة على الأقل','bad');
     }
-    var until=$('#i_until').value? new Date($('#i_until').value+'T23:59:59Z').toISOString() : null;
-    db.rpc('issue_activation_codes',{
-      p_payment_id:payId,
-      p_code_type:$('#i_type').value,
-      p_batch_size:Number($('#i_batch').value||1),
-      p_max_uses:Number($('#i_uses').value||1),
-      p_valid_until:until,
-      p_access_days:Number($('#i_days').value||0)||null,
-      p_subject_ids:subs,
-      p_notes:$('#i_notes').value.trim()||null
+    var until = $('#i_until').value ? new Date($('#i_until').value + 'T23:59:59Z').toISOString() : null;
+    db.rpc('issue_activation_codes', {
+      p_payment_id: payId,
+      p_code_type: $('#i_type').value,
+      p_batch_size: num($('#i_batch').value) || 1,
+      p_max_uses: num($('#i_uses').value) || 1,
+      p_valid_until: until,
+      p_access_days: num($('#i_days').value) || null,
+      p_subject_ids: subs,
+      p_notes: ($('#i_notes').value.trim() || null)
     }).then(function(rows){
-      S.codes=(rows||[]).map(function(r){ return r.code; });
+      S.codes = (rows || []).map(function(r){ return r.code; });
       renderIssueResult();
       toast('تم الإصدار','ok');
     }).catch(function(e){ toast(errMsg(e),'bad'); });
@@ -851,108 +961,157 @@ function bindIssue(){
   renderIssueResult();
 }
 function renderIssueResult(){
-  var box=$('#i_out'); if(!box) return;
-  if(!S.codes.length){ box.innerHTML=''; return; }
-  box.innerHTML='<div class="card"><h2>⚠️ '+esc(t('issuedCodes'))+'</h2>'+
-    '<div class="row" style="margin:10px 0">'+
-      '<button class="btn btn-p" id="i_print">'+esc(t('printAll'))+'</button>'+
-      '<button class="btn" id="i_copy">'+esc(t('copy'))+'</button></div>'+
-    '<div class="grid">'+S.codes.map(function(c){ return '<div class="code">'+esc(c)+'</div>'; }).join('')+'</div></div>';
-  $('#i_print').onclick=function(){
-    $('#printArea').innerHTML='<h2 style="text-align:center">AL-MANARAH — أكواد التفعيل</h2>'+
-      S.codes.map(function(c){
-        return '<div class="pcard"><div>كود تفعيل</div><div class="c">'+esc(c)+'</div>'+
-          '<div style="font-size:12px">almanarah · مرة واحدة</div></div>';
-      }).join('');
+  var box = $('#i_out');
+  if (!box) return;
+  if (!S.codes.length) { box.innerHTML = ''; return; }
+  var grid = S.codes.map(function(c){ return '<div class="code">' + esc(c) + '</div>'; }).join('');
+  box.innerHTML = `
+    <div class="card">
+      <h2>${esc(t('issuedCodes'))}</h2>
+      <div class="row" style="margin:10px 0">
+        <button class="btn btn-p" id="i_print">${esc(t('printAll'))}</button>
+        <button class="btn" id="i_copy">${esc(t('copy'))}</button>
+      </div>
+      <div class="grid">${grid}</div>
+    </div>`;
+  $('#i_print').onclick = function(){
+    var cards = S.codes.map(function(c){
+      return '<div class="pcard"><div>كود تفعيل</div><div class="c">' + esc(c) + '</div>' +
+             '<div style="font-size:12px">almanarah · مرة واحدة</div></div>';
+    }).join('');
+    $('#printArea').innerHTML = '<h2 style="text-align:center">AL-MANARAH — أكواد التفعيل</h2>' + cards;
     window.print();
   };
-  $('#i_copy').onclick=function(){
-    var txt=S.codes.join('\n');
-    if(navigator.clipboard&&navigator.clipboard.writeText){
+  $('#i_copy').onclick = function(){
+    var txt = S.codes.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(txt).then(function(){ toast(t('copied'),'ok'); });
-    }else{
-      var ta=document.createElement('textarea'); ta.value=txt; document.body.appendChild(ta);
-      ta.select(); try{ document.execCommand('copy'); }catch(e){}
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch(e){}
       ta.remove(); toast(t('copied'),'ok');
     }
   };
 }
 
 function viewMyCodes(){
-  return db.rpc('my_issued_codes',{p_days:90}).catch(function(){ return []; }).then(function(rows){
-    rows=rows||[];
-    return '<h1>'+esc(t('myCodes'))+'</h1><div class="card"><table>'+
-      '<thead><tr><th>'+esc(t('course'))+'</th><th>'+esc(t('scope'))+'</th><th>'+esc(t('codeType'))+'</th>'+
-      '<th>'+esc(t('status'))+'</th><th>استُخدم</th><th>'+esc(t('createdAt'))+'</th></tr></thead><tbody>'+
-      (rows.map(function(r){
-        return '<tr><td>'+esc(r.course)+'</td><td>'+esc(r.scope)+'</td><td>'+esc(r.type)+'</td>'+
-          '<td><span class="tag '+(r.status==='unused'?'ok':r.status==='used'?'gold':'bad')+'">'+esc(r.status)+'</span></td>'+
-          '<td class="mono">'+r.uses_count+'/'+r.max_uses+'</td>'+
-          '<td class="mono">'+new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')+'</td></tr>';
-      }).join('') || '<tr><td colspan="6" class="mut">—</td></tr>')+
-      '</tbody></table></div>';
+  return db.rpc('my_issued_codes', { p_days:90 }).catch(function(){ return []; }).then(function(rows){
+    rows = rows || [];
+    var trs = rows.map(function(r){
+      var cls = (r.status==='unused' ? 'ok' : (r.status==='used' ? 'gold' : 'bad'));
+      return `
+      <tr>
+        <td>${esc(r.course)}</td>
+        <td>${esc(r.scope)}</td>
+        <td>${esc(r.type)}</td>
+        <td><span class="tag ${cls}">${esc(r.status)}</span></td>
+        <td class="mono">${r.uses_count}/${r.max_uses}</td>
+        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
+      </tr>`;
+    }).join('');
+    return `
+    <h1>${esc(t('myCodes'))}</h1>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th>${esc(t('course'))}</th><th>${esc(t('scope'))}</th><th>${esc(t('codeType'))}</th>
+          <th>${esc(t('status'))}</th><th>استُخدم</th><th>${esc(t('createdAt'))}</th>
+        </tr></thead>
+        <tbody>${trs || '<tr><td colspan="6" class="mut">—</td></tr>'}</tbody>
+      </table>
+    </div>`;
   });
 }
 
+/* ============================== شاشات الإدارة ============================== */
 function viewAdmin(){
   return db.rpc('admin_dashboard').then(function(d){
-    d=d||{};
-    function k(l,v){ return '<div class="kpi"><span class="mut">'+esc(l)+'</span><b>'+esc(v==null?0:v)+'</b></div>'; }
-    return '<h1>'+esc(t('adminHome'))+'</h1><div class="grid">'+
-      k('إجمالي الطلاب',d.students_total)+k('طلاب نشطون',d.students_active)+k('جدد (7 أيام)',d.students_new_7d)+
-      k('كورسات منشورة',d.courses_published)+k('عمليات دفع',d.payments_count)+k('إجمالي التحصيل',d.payments_total)+
-      k('أكواد مستخدمة',d.codes_used)+k('أكواد غير مستخدمة',d.codes_unused)+k('أحداث تدقيق (24س)',d.audit_24h)+
-    '</div><div class="card"><div class="row">'+
-      '<a class="btn btn-p" href="#/users">'+esc(t('users'))+'</a>'+
-      '<a class="btn" href="#/payments">'+esc(t('payments'))+'</a>'+
-      '<a class="btn" href="#/audit">'+esc(t('audit'))+'</a></div></div>';
+    d = d || {};
+    function k(l,v){ return '<div class="kpi"><span class="mut">' + esc(l) + '</span><b>' + esc(v==null?0:v) + '</b></div>'; }
+    return `
+    <h1>${esc(t('adminHome'))}</h1>
+    <div class="grid">
+      ${k('إجمالي الطلاب', d.students_total)}
+      ${k('طلاب نشطون', d.students_active)}
+      ${k('جدد (7 أيام)', d.students_new_7d)}
+      ${k('كورسات منشورة', d.courses_published)}
+      ${k('عمليات دفع', d.payments_count)}
+      ${k('إجمالي التحصيل', d.payments_total)}
+      ${k('أكواد مستخدمة', d.codes_used)}
+      ${k('أكواد غير مستخدمة', d.codes_unused)}
+      ${k('أحداث تدقيق (24س)', d.audit_24h)}
+    </div>
+    <div class="card"><div class="row">
+      <a class="btn btn-p" href="#/users">${esc(t('users'))}</a>
+      <a class="btn" href="#/payments">${esc(t('payments'))}</a>
+      <a class="btn" href="#/audit">${esc(t('audit'))}</a>
+    </div></div>`;
   });
 }
 
 function viewUsers(){
-  return db.rpc('admin_list_users',{p_query:S.userQuery||'',p_limit:100}).catch(function(){ return []; }).then(function(rows){
-    rows=rows||[];
-    return '<h1>'+esc(t('users'))+'</h1>'+
-      '<div class="card"><div class="row">'+
-        '<input id="u_q" class="grow" placeholder="بحث بالبريد أو الاسم" value="'+esc(S.userQuery||'')+'">'+
-        '<button class="btn btn-p" id="u_go">'+esc(t('search'))+'</button></div></div>'+
-      '<div class="card"><table><thead><tr><th>'+esc(t('name'))+'</th><th>'+esc(t('email'))+'</th>'+
-        '<th>'+esc(t('role'))+'</th><th>'+esc(t('status'))+'</th><th>'+esc(t('actions'))+'</th></tr></thead><tbody>'+
-        (rows.map(function(u){
-          return '<tr><td>'+esc(u.name)+'</td><td class="mono">'+esc(u.email)+'</td><td>'+esc(u.roles||'student')+'</td>'+
-            '<td><span class="tag '+(u.status==='active'?'ok':'bad')+'">'+esc(u.status)+'</span></td>'+
-            '<td><div class="row" style="gap:4px">'+
-              '<select class="u_role" data-email="'+esc(u.email)+'" style="width:auto;margin:0;padding:4px">'+
-                '<option value="">—</option><option value="enrollment_officer">موظف تسجيل</option>'+
-                '<option value="instructor">مدرّس</option><option value="super_admin">مدير عام</option>'+
-                '<option value="student">طالب</option></select>'+
-              '<button class="btn btn-s u_grant" data-email="'+esc(u.email)+'">'+esc(t('grant'))+'</button>'+
-              '<button class="btn btn-s u_rev" data-email="'+esc(u.email)+'">'+esc(t('revoke'))+'</button>'+
-              (u.status==='active'
-                ? '<button class="btn btn-s u_st" data-email="'+esc(u.email)+'" data-st="suspended">'+esc(t('suspend'))+'</button>'
-                : '<button class="btn btn-s u_st" data-email="'+esc(u.email)+'" data-st="active">'+esc(t('activate2'))+'</button>')+
-            '</div></td></tr>';
-        }).join('') || '<tr><td colspan="5" class="mut">—</td></tr>')+
-      '</tbody></table></div>';
+  return db.rpc('admin_list_users', { p_query:S.userQuery || '', p_limit:100 }).catch(function(){ return []; }).then(function(rows){
+    rows = rows || [];
+    var trs = rows.map(function(u){
+      return `
+      <tr>
+        <td>${esc(u.name)}</td>
+        <td class="mono">${esc(u.email)}</td>
+        <td>${esc(u.roles || 'student')}</td>
+        <td><span class="tag ${u.status==='active'?'ok':'bad'}">${esc(u.status)}</span></td>
+        <td>
+          <div class="row" style="gap:4px">
+            <select class="u_role" data-email="${esc(u.email)}" style="width:auto;margin:0;padding:4px">
+              <option value="">—</option>
+              <option value="enrollment_officer">موظف تسجيل</option>
+              <option value="instructor">مدرّس</option>
+              <option value="super_admin">مدير عام</option>
+              <option value="student">طالب</option>
+            </select>
+            <button class="btn btn-s u_grant" data-email="${esc(u.email)}">${esc(t('grant'))}</button>
+            <button class="btn btn-s u_rev" data-email="${esc(u.email)}">${esc(t('revoke'))}</button>
+            ${u.status==='active'
+              ? '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="suspended">' + esc(t('suspend')) + '</button>'
+              : '<button class="btn btn-s u_st" data-email="' + esc(u.email) + '" data-st="active">' + esc(t('activate2')) + '</button>'}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    return `
+    <h1>${esc(t('users'))}</h1>
+    <div class="card"><div class="row">
+      <input id="u_q" class="grow" placeholder="بحث بالبريد أو الاسم" value="${esc(S.userQuery || '')}">
+      <button class="btn btn-p" id="u_go">${esc(t('search'))}</button>
+    </div></div>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th>${esc(t('name'))}</th><th>${esc(t('email'))}</th><th>${esc(t('role'))}</th>
+          <th>${esc(t('status'))}</th><th>${esc(t('actions'))}</th>
+        </tr></thead>
+        <tbody>${trs || '<tr><td colspan="5" class="mut">—</td></tr>'}</tbody>
+      </table>
+    </div>`;
   });
 }
 function bindUsers(){
-  $('#u_go').onclick=function(){ S.userQuery=$('#u_q').value.trim(); render(); };
+  $('#u_go').onclick = function(){ S.userQuery = $('#u_q').value.trim(); render(); };
   [].slice.call(document.querySelectorAll('.u_grant,.u_rev')).forEach(function(b){
-    b.onclick=function(){
-      var email=b.getAttribute('data-email');
-      var sel=document.querySelector('.u_role[data-email="'+CSS.escape(email)+'"]');
-      var role=sel&&sel.value;
-      if(!role){ toast('اختر دوراً','bad'); return; }
-      var fn = b.className.indexOf('u_grant')>=0 ? 'admin_grant_role' : 'admin_revoke_role';
-      db.rpc(fn,{p_email:email,p_role:role})
+    b.onclick = function(){
+      var email = b.getAttribute('data-email');
+      var sel = document.querySelector('.u_role[data-email="' + CSS.escape(email) + '"]');
+      var role = sel && sel.value;
+      if (!role) return toast('اختر دوراً','bad');
+      var fn = (b.className.indexOf('u_grant') >= 0) ? 'admin_grant_role' : 'admin_revoke_role';
+      db.rpc(fn, { p_email:email, p_role:role })
         .then(function(){ toast('تم','ok'); render(); })
         .catch(function(e){ toast(errMsg(e),'bad'); });
     };
   });
   [].slice.call(document.querySelectorAll('.u_st')).forEach(function(b){
-    b.onclick=function(){
-      db.rpc('admin_set_user_status',{p_email:b.getAttribute('data-email'),p_status:b.getAttribute('data-st')})
+    b.onclick = function(){
+      db.rpc('admin_set_user_status', { p_email:b.getAttribute('data-email'), p_status:b.getAttribute('data-st') })
         .then(function(){ toast('تم','ok'); render(); })
         .catch(function(e){ toast(errMsg(e),'bad'); });
     };
@@ -960,101 +1119,124 @@ function bindUsers(){
 }
 
 function viewPayments(){
-  return db.rpc('admin_list_payments',{p_limit:100}).catch(function(){ return []; }).then(function(rows){
-    rows=rows||[];
-    return '<h1>'+esc(t('payments'))+'</h1><div class="card"><table>'+
-      '<thead><tr><th>الطالب</th><th>'+esc(t('course'))+'</th><th>'+esc(t('amount'))+'</th>'+
-      '<th>'+esc(t('receipt'))+'</th><th>'+esc(t('createdAt'))+'</th></tr></thead><tbody>'+
-      (rows.map(function(r){
-        return '<tr><td>'+esc(r.student)+'</td><td>'+esc(r.course)+'</td>'+
-          '<td class="mono">'+r.amount+' '+esc(r.currency)+'</td><td class="mono">'+esc(r.receipt||'—')+'</td>'+
-          '<td class="mono">'+new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')+'</td></tr>';
-      }).join('') || '<tr><td colspan="5" class="mut">—</td></tr>')+
-      '</tbody></table></div>';
+  return db.rpc('admin_list_payments', { p_limit:100 }).catch(function(){ return []; }).then(function(rows){
+    rows = rows || [];
+    var trs = rows.map(function(r){
+      return `
+      <tr>
+        <td>${esc(r.student)}</td>
+        <td>${esc(r.course)}</td>
+        <td class="mono">${r.amount} ${esc(r.currency)}</td>
+        <td class="mono">${esc(r.receipt || '—')}</td>
+        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
+      </tr>`;
+    }).join('');
+    return `
+    <h1>${esc(t('payments'))}</h1>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th>الطالب</th><th>${esc(t('course'))}</th><th>${esc(t('amount'))}</th>
+          <th>${esc(t('receipt'))}</th><th>${esc(t('createdAt'))}</th>
+        </tr></thead>
+        <tbody>${trs || '<tr><td colspan="5" class="mut">—</td></tr>'}</tbody>
+      </table>
+    </div>`;
   });
 }
 
 function viewAudit(){
-  return db.rpc('admin_list_audit',{p_limit:150}).catch(function(){ return []; }).then(function(rows){
-    rows=rows||[];
-    return '<h1>'+esc(t('audit'))+'</h1><div class="card"><table>'+
-      '<thead><tr><th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>العنصر</th><th>تفاصيل</th></tr></thead><tbody>'+
-      (rows.map(function(r){
-        return '<tr><td class="mono">'+new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')+'</td>'+
-          '<td>'+esc(r.actor||'—')+'</td><td class="mut">'+esc(r.role||'—')+'</td>'+
-          '<td class="mono">'+esc(r.action)+'</td><td class="mono">'+esc(r.target||'—')+'</td>'+
-          '<td class="mono" style="max-width:280px;word-break:break-all">'+esc(JSON.stringify(r.meta||{}))+'</td></tr>';
-      }).join('') || '<tr><td colspan="6" class="mut">—</td></tr>')+
-      '</tbody></table></div>';
+  return db.rpc('admin_list_audit', { p_limit:150 }).catch(function(){ return []; }).then(function(rows){
+    rows = rows || [];
+    var trs = rows.map(function(r){
+      return `
+      <tr>
+        <td class="mono">${esc(new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB'))}</td>
+        <td>${esc(r.actor || '—')}</td>
+        <td class="mut">${esc(r.role || '—')}</td>
+        <td class="mono">${esc(r.action)}</td>
+        <td class="mono">${esc(r.target || '—')}</td>
+        <td class="mono" style="max-width:280px;word-break:break-all">${esc(JSON.stringify(r.meta || {}))}</td>
+      </tr>`;
+    }).join('');
+    return `
+    <h1>${esc(t('audit'))}</h1>
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>العنصر</th><th>تفاصيل</th>
+        </tr></thead>
+        <tbody>${trs || '<tr><td colspan="6" class="mut">—</td></tr>'}</tbody>
+      </table>
+    </div>`;
   });
 }
 
-/* ==============================================================
-   الموجّه
-   ============================================================== */
+/* ============================== الموجّه ============================== */
 var VIEWS = {
   home:viewStudentHome, catalog:viewCatalog, profile:viewProfile,
   desk:viewDesk, find:viewFind, pay:viewPay, issue:viewIssue, mycodes:viewMyCodes,
   admin:viewAdmin, users:viewUsers, payments:viewPayments, audit:viewAudit
 };
-var BINDERS = { home:bindStudentHome, find:bindFind, pay:bindPay, issue:bindIssue, users:bindUsers, profile:bindProfile };
+var BINDERS = {
+  home:bindStudentHome, find:bindFind, pay:bindPay, issue:bindIssue,
+  users:bindUsers, profile:bindProfile
+};
 
 function render(){
   applyChrome();
-  if(!cfg){ renderSetup(); return; }
-  if(!S.session){ renderAuth(); return; }
+  if (!cfg) { renderSetup(); return; }
+  if (!S.session) { renderAuth(); return; }
 
-  var staff = S.roles.indexOf('enrollment_officer')>=0 || S.roles.indexOf('super_admin')>=0;
-  var hash  = location.hash.replace(/^#\/?/,'');
-  var path  = hash.split('?')[0];
-  var seg   = path.split('/');
-  var key   = seg[0] || (staff?'desk':'home');
-  var arg   = seg[1] || null;
+  var staff = (S.roles.indexOf('enrollment_officer') >= 0) || (S.roles.indexOf('super_admin') >= 0);
+  var hash = location.hash.replace(/^#\/?/,'');
+  var seg = hash.split('?')[0].split('/');
+  var key = seg[0] || (staff ? 'desk' : 'home');
+  var arg = seg[1] || null;
 
-  function paint(viewHtml, binder, a){
-    $('#app').innerHTML = shell(deskNav(), viewHtml);
-    bindChrome();
-    if(binder) binder(a);
-  }
   function go(htmlPromise, binder){
     $('#view').innerHTML = '<div class="mut">…</div>';
     htmlPromise.then(function(html){
       S.route = key;
-      paint(html, binder);
+      $('#app').innerHTML = shell(deskNav(), html);
+      bindChrome();
+      if (binder) binder(arg);
     }).catch(function(e){
-      $('#view').innerHTML = '<div class="diag">'+esc(errMsg(e))+'</div>';
+      $('#view').innerHTML = '<div class="diag">' + esc(errMsg(e)) + '</div>';
     });
   }
 
-  if(key==='course'){ return go(viewCourse(arg), null); }
-  if(key==='subject'){ return go(viewSubject(arg), null); }
-  if(key==='lesson'){ return go(viewLesson(arg), bindLesson); }
+  if (key === 'course')  return go(viewCourse(arg), null);
+  if (key === 'subject') return go(viewSubject(arg), null);
+  if (key === 'lesson')  return go(viewLesson(arg), bindLesson);
 
-  if(!VIEWS[key]) key = staff?'desk':'home';
-  if(['admin','users','payments','audit'].indexOf(key)>=0 && S.roles.indexOf('super_admin')<0) key='desk';
-  if(['desk','find','pay','issue','mycodes'].indexOf(key)>=0 && !staff) key='home';
+  if (!VIEWS[key]) key = staff ? 'desk' : 'home';
+  if (['admin','users','payments','audit'].indexOf(key) >= 0 && S.roles.indexOf('super_admin') < 0) key = 'desk';
+  if (['desk','find','pay','issue','mycodes'].indexOf(key) >= 0 && !staff) key = 'home';
 
   S.route = key;
   go(VIEWS[key](), BINDERS[key]);
 }
 
 function boot(){
-  if(!cfg){ renderSetup(); return; }
+  if (!cfg) { renderSetup(); return; }
   $('#app').innerHTML = '<div class="center"><div class="card mut">…</div></div>';
   loadMe().then(render).catch(function(e){
-    $('#app').innerHTML = '<div class="center"><div class="card"><div class="diag">'+esc(errMsg(e))+'</div></div></div>';
+    $('#app').innerHTML = '<div class="center"><div class="card"><div class="diag">' + esc(errMsg(e)) + '</div></div></div>';
   });
 }
 
-window.addEventListener('hashchange', function(){ if(cfg && S.session) render(); });
+window.addEventListener('hashchange', function(){ if (cfg && S.session) render(); });
 window.addEventListener('error', function(ev){
-  if(!$('#app')) return;
-  var d=document.createElement('div');
-  d.className='diag';
-  d.textContent='خطأ غير متوقع: '+(ev.message||'');
+  if (!$('#app')) return;
+  var d = document.createElement('div');
+  d.className = 'diag';
+  d.textContent = 'خطأ غير متوقع: ' + (ev.message || '');
   $('#app').appendChild(d);
 });
-boot();
+
+try { boot(); }
+catch(e){ if (FATAL) { FATAL.style.display='block'; FATAL.textContent = 'خطأ: ' + (e && e.message || e); } }
 </script>
 </body>
 </html>
