@@ -24,7 +24,6 @@ label{font-size:13px;color:var(--tx2);display:block;margin-top:10px}
 .btn:hover{border-color:var(--gold)}
 .btn-p{background:var(--navy);color:#fff;border-color:var(--navy)}
 .btn-g{background:var(--gold);color:#1a1200;border-color:var(--gold)}
-.btn-d{background:transparent;color:var(--bad);border-color:var(--bad)}
 .btn-s{padding:6px 12px;font-size:13px;font-weight:500}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .grow{flex:1 1 auto}
@@ -68,10 +67,13 @@ th{color:var(--tx2);font-size:12px;font-weight:600}
 .hero h1{color:#fff}
 .hero .mut{color:rgba(255,255,255,.75)}
 .lesson{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;flex-wrap:wrap}
-.lesson.locked{opacity:.62}
-.lock{margin-inline-start:auto}
+.hint{border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7;margin:10px 0;border:1px solid var(--bd);background:var(--soft)}
+.hint.good{border-color:rgba(31,157,85,.4);background:rgba(31,157,85,.08)}
+.hint.dang{border-color:rgba(214,69,69,.4);background:rgba(214,69,69,.08)}
 .diag{background:#fff4f4;border:1px solid #f3c2c2;color:#8a2020;border-radius:10px;padding:12px;margin:12px 0;font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap;word-break:break-all}
 [data-theme="dark"] .diag{background:#2a1414;border-color:#5a2626;color:#ffb4b4}
+.diag.ok{background:#f1faf3;border-color:#bfe6cc;color:#1d6b3f}
+[data-theme="dark"] .diag.ok{background:#132a1c;border-color:#2c5a3c;color:#9be3b6}
 #printArea{display:none}
 @media print{
   body *{visibility:hidden}
@@ -101,19 +103,17 @@ var LS = {
   del:function(k){ localStorage.removeItem(k); }
 };
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function uuid(){ return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){ var r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }); }
 
 /* --------------------------------------------------------- الترجمات --------- */
 var I18N = {
   ar:{
     appName:'المنارة', tagline:'تعلّم بوضوح',
     setupTitle:'ربط المنارة بمشروعك', setupHint:'افتح Supabase → Project Settings → API وانسخ القيمتين.',
-    url:'Project URL', anon:'anon public key', save:'حفظ وبدء', test:'اختبار الاتصال',
-    setupNote:'المفتاح العام آمن للنشر — كل الحماية مفروضة من قاعدة البيانات.',
+    url:'Project URL', anon:'المفتاح العام (Publishable key)', save:'حفظ وبدء', test:'اختبار الاتصال',
+    setupNote:'هذا المفتاح آمن للنشر — كل الحماية مفروضة من قاعدة البيانات.',
     login:'تسجيل الدخول', signup:'إنشاء حساب', email:'البريد الإلكتروني', password:'كلمة المرور',
     pwd2:'تأكيد كلمة المرور', name:'الاسم الكامل', phone:'الهاتف (اختياري)',
-    forgot:'نسيت كلمة المرور؟', noAccount:'ليس لديك حساب؟', haveAccount:'لديك حساب بالفعل؟',
-    logout:'تسجيل الخروج', save2:'حفظ', cancel:'إلغاء', search:'بحث', print:'طباعة', copy:'نسخ',
+    forgot:'نسيت كلمة المرور؟', logout:'تسجيل الخروج', save2:'حفظ', search:'بحث', print:'طباعة', copy:'نسخ',
     home:'الرئيسية', library:'مكتبتي', catalog:'الكتالوج', profile:'ملفي',
     officerHome:'غرفة التسجيل', findStudent:'البحث عن طالب', confirmPay:'تأكيد دفعة',
     issueCode:'إصدار أكواد', myCodes:'أكوادي', adminHome:'لوحة القياس', users:'المستخدمون',
@@ -137,12 +137,11 @@ var I18N = {
   en:{
     appName:'Al-Manarah', tagline:'Learn with clarity',
     setupTitle:'Connect Al-Manarah to your project', setupHint:'Open Supabase → Project Settings → API and copy both values.',
-    url:'Project URL', anon:'anon public key', save:'Save & start', test:'Test connection',
-    setupNote:'The public key is safe to ship — all security is enforced by the database.',
+    url:'Project URL', anon:'Publishable key', save:'Save & start', test:'Test connection',
+    setupNote:'This key is safe to ship — all security is enforced by the database.',
     login:'Log in', signup:'Sign up', email:'Email', password:'Password', pwd2:'Confirm password',
-    name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?',
-    noAccount:'No account yet?', haveAccount:'Already registered?', logout:'Log out',
-    save2:'Save', cancel:'Cancel', search:'Search', print:'Print', copy:'Copy',
+    name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?', logout:'Log out',
+    save2:'Save', search:'Search', print:'Print', copy:'Copy',
     home:'Home', library:'My learning', catalog:'Catalog', profile:'Profile',
     officerHome:'Enrollment desk', findStudent:'Find student', confirmPay:'Confirm payment',
     issueCode:'Issue codes', myCodes:'My codes', adminHome:'Dashboard', users:'Users',
@@ -202,9 +201,9 @@ var ERRS = {
   user_not_found:'المستخدم غير موجود',
   batch_out_of_range:'عدد الأكواد يجب أن يكون بين 1 و 500',
   invalid_credentials:'البريد أو كلمة المرور غير صحيحة',
+  invalid_grant:'البريد أو كلمة المرور غير صحيحة',
   immutable_record:'سجل محمي — لا يمكن التعديل',
-  user_already_exists:'هذا البريد مسجّل بالفعل',
-  email_not_confirmed_signup:'تأكد من بريدك أولاً'
+  user_already_exists:'هذا البريد مسجّل بالفعل'
 };
 function errMsg(e){
   var m = (e && (e.code || e.message)) || '';
@@ -218,13 +217,12 @@ function errMsg(e){
    ============================================================== */
 function api(path, opt){
   opt = opt || {};
-  var method = opt.method || 'GET';
   var h = { 'apikey': cfg.anon, 'Content-Type':'application/json' };
   if(opt.auth !== false && token) h['Authorization'] = 'Bearer ' + token;
   if(opt.headers){ for(var k in opt.headers) h[k]=opt.headers[k]; }
 
   return fetch(cfg.url.replace(/\/+$/,'') + path, {
-    method: method,
+    method: opt.method || 'GET',
     headers: h,
     body: opt.body ? JSON.stringify(opt.body) : undefined
   }).then(function(r){
@@ -286,11 +284,13 @@ function renderSetup(){
     '<div class="card">'+
       '<h1>'+esc(t('setupTitle'))+'</h1>'+
       '<p class="mut">'+esc(t('setupHint'))+'</p>'+
+      '<div class="hint good">✅ انسخ <b>Publishable key</b> — اللي بيبدأ بـ <span class="mono">sb_publishable_…</span></div>'+
+      '<div class="hint dang">❌ متنسخش <b>Secret key</b> أبداً — اللي بيبدأ بـ <span class="mono">sb_secret_…</span> (ده بيفتح كل حاجة من غير حماية)</div>'+
       '<div id="setup_diag"></div>'+
       '<label>'+esc(t('url'))+'</label>'+
       '<input id="s_url" placeholder="https://xxxxxxxx.supabase.co" value="'+esc(cfg?cfg.url:'')+'">'+
       '<label>'+esc(t('anon'))+'</label>'+
-      '<input id="s_key" placeholder="eyJhbGciOi..." value="'+esc(cfg?cfg.anon:'')+'">'+
+      '<input id="s_key" placeholder="sb_publishable_…" value="'+esc(cfg?cfg.anon:'')+'">'+
       '<p class="mut" style="margin-top:10px">'+esc(t('setupNote'))+'</p>'+
       '<div class="row" style="margin-top:14px">'+
         '<button class="btn btn-p grow" id="s_go">'+esc(t('save'))+'</button>'+
@@ -307,7 +307,7 @@ function renderSetup(){
     fetch(u.replace(/\/+$/,'')+'/rest/v1/app_settings?select=key',{headers:{'apikey':k}})
       .then(function(r){ return r.text().then(function(x){
         box.innerHTML = r.ok
-          ? '<div class="mut" style="color:var(--ok)">✅ الاتصال ناجح — القيمتين صح. دوس "حفظ وبدء".</div>'
+          ? '<div class="diag ok">✅ الاتصال ناجح — القيمتين صح. دوس "حفظ وبدء".</div>'
           : '<div class="diag">الاتصال فشل ('+r.status+')\n'+x.slice(0,400)+'</div>';
       });})
       .catch(function(e){ box.innerHTML='<div class="diag">فشل الوصول:\n'+esc(String(e))+'</div>'; });
@@ -316,8 +316,10 @@ function renderSetup(){
   $('#s_go').onclick = function(){
     var url=$('#s_url').value.trim().replace(/\/+$/,''), anon=$('#s_key').value.trim();
     if(!url||!anon) return toast(t('err'),'bad');
-    if(!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)$/i.test(url)) return toast('Project URL شكله غلط','bad');
-    if(anon.indexOf('eyJ')!==0) return toast('مفتاح anon شكله غلط','bad');
+    if(!/^https:\/\//i.test(url)) return toast('Project URL شكله غلط','bad');
+    if(anon.indexOf('sb_secret')===0) return toast('ده المفتاح السري — استخدم Publishable key','bad');
+    if(anon.indexOf('sb_publishable_')!==0 && anon.indexOf('eyJ')!==0)
+      return toast('المفتاح شكله غلط — لازم يبدأ بـ sb_publishable_ أو eyJ','bad');
     LS.set('mn_cfg',{url:url,anon:anon}); cfg={url:url,anon:anon};
     boot();
   };
@@ -496,8 +498,7 @@ function viewCourse(id){
   ]).then(function(res){
     var c=res[0], subs=res[1]||[], lib=res[2]||[];
     if(!c) return '<div class="card">'+esc(t('notFound'))+'</div>';
-    var owned=new Set();
-    lib.forEach(function(r){ if(r.subject_id) owned.add(r.subject_id); });
+    var owned={}; lib.forEach(function(r){ if(r.subject_id) owned[r.subject_id]=1; });
     var ownedCourse = lib.some(function(r){ return r.course_id===id; });
     return '<div class="row"><a class="btn btn-s" href="#/catalog">← '+esc(t('back'))+'</a></div>'+
       '<div class="card" style="margin-top:12px">'+
@@ -506,7 +507,7 @@ function viewCourse(id){
         '<p class="mut">'+esc(lang==='ar'?c.desc_ar:(c.desc_en||c.desc_ar))+'</p></div>'+
       '<h2>'+esc(t('subject'))+'</h2>'+
       subs.map(function(s){
-        var has = owned.has(s.id)||ownedCourse;
+        var has = owned[s.id]||ownedCourse;
         return '<div class="lesson"><div class="grow"><b>'+esc(lang==='ar'?s.title_ar:(s.title_en||s.title_ar))+'</b></div>'+
           (has ? '<a class="btn btn-s btn-p" href="#/subject/'+s.id+'">'+esc(t('open'))+'</a>'
                : '<span class="tag lock">🔒 '+esc(t('locked'))+'</span>')+
@@ -577,7 +578,7 @@ function bindLesson(id){
   var b=$('#mk_done'); if(!b) return;
   b.onclick=function(){
     db.rpc('mark_lesson',{p_lesson_id:id,p_completed:true,p_position:0})
-      .then(function(){ toast(t('done')||'تم','ok'); render(); })
+      .then(function(){ toast('تم','ok'); render(); })
       .catch(function(e){ toast(errMsg(e),'bad'); });
   };
 }
@@ -962,10 +963,10 @@ function render(){
   var key   = seg[0] || (staff?'desk':'home');
   var arg   = seg[1] || null;
 
-  function paint(viewHtml, binder, arg){
+  function paint(viewHtml, binder, a){
     $('#app').innerHTML = shell(deskNav(), viewHtml);
     bindChrome();
-    if(binder) binder(arg);
+    if(binder) binder(a);
   }
   function go(htmlPromise, binder){
     $('#view').innerHTML = '<div class="mut">…</div>';
