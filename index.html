@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>المنارة — غرفة التسجيل وبوابة الطالب</title>
+<style>
+:root{
+  --navy:#0B2A4A; --gold:#E8A317; --bg:#F7F8FA; --card:#FFFFFF; --tx:#14202E; --tx2:#5B6878;
+  --bd:#E3E8EF; --ok:#1F9D55; --bad:#D64545; --warn:#B7791F; --soft:#EEF3F9;
+}
+[data-theme="dark"]{
+  --navy:#0B2A4A; --gold:#F2B84B; --bg:#0E1520; --card:#16202E; --tx:#E8EDF4; --tx2:#9AA7B8;
+  --bd:#243244; --ok:#3FB27F; --bad:#E46363; --warn:#E0A93B; --soft:#1B2635;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"IBM Plex Sans Arabic","Cairo",Inter,system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:15px}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:15px;width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);margin-top:4px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px}
+label{font-size:13px;color:var(--tx2);display:block;margin-top:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--gold)}
+.btn-p{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-g{background:var(--gold);color:#1a1200;border-color:var(--gold)}
+.btn-d{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn-s{padding:6px 12px;font-size:13px;font-weight:500}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1 1 auto}
+.top{position:sticky;top:0;z-index:30;background:var(--navy);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px}
+.logo .dot{width:12px;height:12px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.spacer{flex:1}
+.iconbtn{background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+.layout{display:flex;min-height:calc(100vh - 52px)}
+.side{width:230px;flex:0 0 230px;background:var(--card);border-inline-end:1px solid var(--bd);padding:14px 10px}
+.side a{display:block;padding:10px 12px;border-radius:10px;color:var(--tx2);font-weight:600;margin-bottom:2px}
+.side a.on{background:var(--soft);color:var(--navy)}
+[data-theme="dark"] .side a.on{color:var(--gold)}
+.main{flex:1;padding:22px;max-width:1100px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;margin-bottom:16px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.mut{color:var(--tx2);font-size:13px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.kpi b{display:block;font-size:24px;margin-top:4px}
+.tag{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;background:var(--soft);color:var(--tx2)}
+.tag.ok{background:rgba(31,157,85,.15);color:var(--ok)}
+.tag.bad{background:rgba(214,69,69,.15);color:var(--bad)}
+.tag.warn{background:rgba(183,121,31,.15);color:var(--warn)}
+.tag.gold{background:rgba(232,163,23,.18);color:var(--warn)}
+.bar{height:8px;border-radius:99px;background:var(--bd);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:start;padding:9px 8px;border-bottom:1px solid var(--bd);vertical-align:top}
+th{color:var(--tx2);font-size:12px;font-weight:600}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:2px;font-weight:700;font-size:18px;background:var(--soft);padding:8px 12px;border-radius:8px;display:inline-block}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.toast{position:fixed;inset-inline-start:16px;inset-block-end:16px;z-index:99;background:var(--card);border:1px solid var(--bd);border-inline-start:4px solid var(--gold);padding:12px 16px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.15);max-width:420px}
+.toast.bad{border-inline-start-color:var(--bad)}
+.toast.ok{border-inline-start-color:var(--ok)}
+.hidden{display:none!important}
+.center{max-width:460px;margin:6vh auto;padding:0 14px}
+.hero{background:linear-gradient(135deg,var(--navy),#123f6b);color:#fff;border-radius:16px;padding:26px;margin-bottom:18px}
+.hero h1{color:#fff}
+.hero .mut{color:rgba(255,255,255,.75)}
+.lesson{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px}
+.lesson.locked{opacity:.62}
+.lock{margin-inline-start:auto}
+#printArea{display:none}
+@media print{
+  body *{visibility:hidden}
+  #printArea,#printArea *{visibility:visible}
+  #printArea{display:block;position:absolute;inset-block-start:0;inset-inline-start:0;width:100%;padding:20px}
+  .pcard{border:2px solid #000;padding:14px;margin:10px;page-break-inside:avoid;width:220px;display:inline-block;text-align:center}
+  .pcard .c{font-family:monospace;font-size:22px;letter-spacing:3px;font-weight:700;margin:10px 0}
+}
+@media(max-width:760px){.side{display:none}.main{padding:14px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="printArea"></div>
+<div id="toasts"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const $  = (s,r=document)=>r.querySelector(s);
+const LS = {
+  get:(k,d=null)=>{try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),
+  del:k=>localStorage.removeItem(k)
+};
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uuid = () => (crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);}));
+
+/* ------------------------------------------------------------- الترجمات ---- */
+const I18N = {
+  ar:{
+    appName:'المنارة', tagline:'تعلّم بوضوح',
+    setupTitle:'ربط المنارة بمشروعك', setupHint:'افتح Supabase → Project Settings → API وانسخ القيمتين.',
+    url:'Project URL', anon:'anon public key', save:'حفظ وبدء', setupNote:'المفتاح العام آمن للنشر — الحماية كلها مفروضة من قاعدة البيانات.',
+    login:'تسجيل الدخول', signup:'إنشاء حساب', email:'البريد الإلكتروني', password:'كلمة المرور', pwd2:'تأكيد كلمة المرور',
+    name:'الاسم الكامل', phone:'الهاتف (اختياري)', forgot:'نسيت كلمة المرور؟', noAccount:'ليس لديك حساب؟', haveAccount:'لديك حساب بالفعل؟',
+    logout:'تسجيل الخروج', save2:'حفظ', cancel:'إلغاء', search:'بحث', print:'طباعة', copy:'نسخ', close:'إغلاق',
+    home:'الرئيسية', library:'مكتبتي', catalog:'الكتالوج', profile:'ملفي',
+    officerHome:'غرفة التسجيل', findStudent:'البحث عن طالب', confirmPay:'تأكيد دفعة', issueCode:'إصدار أكواد',
+    myCodes:'أكوادي', adminHome:'لوحة القياس', users:'المستخدمون', payments:'المدفوعات', audit:'سجل التدقيق',
+    studentEmail:'بريد الطالب', course:'الكورس', amount:'المبلغ', currency:'العملة', receipt:'رقم الإيصال',
+    notes:'ملاحظات', confirmPayment:'تأكيد الدفع', paymentDone:'تم تسجيل الدفع',
+    codeType:'نوع الكود', assigned:'مرتبط بطالب (Assigned)', voucher:'غير مرتبط (Voucher)', campaign:'حملة (Campaign)',
+    scope:'نطاق الصلاحية', fullCourse:'الكورس بالكامل', someSubjects:'مواد محددة',
+    batchSize:'عدد الأكواد (حتى 500)', maxUses:'أقصى عدد استخدامات', validUntil:'صالح حتى تاريخ', accessDays:'مدة الوصول (أيام)',
+    issue:'إصدار الأكواد', issuedCodes:'الأكواد الصادرة — تظهر مرة واحدة فقط', printAll:'طباعة الكل',
+    activate:'تفعيل', activateCode:'كود التفعيل', activateBtn:'تفعيل الكود', activated:'تم التفعيل بنجاح',
+    progress:'التقدم', lessons:'دروس', completed:'مكتمل', open:'فتح', locked:'مقفول', preview:'معاينة مجانية',
+    freePreview:'مجاني', notFound:'لا توجد نتائج', forbidden:'لا تملك صلاحية',
+    role:'الدور', status:'الحالة', createdAt:'تاريخ التسجيل', actions:'إجراءات', grant:'منح', revoke:'سحب',
+    suspend:'تجميد', disable:'تعطيل', activate2:'تنشيط', back:'رجوع', total:'الإجمالي',
+    dark:'ليلي', light:'نهاري', lang:'English', courseName:'اسم الكورس', subject:'المادة', unit:'الوحدة',
+    lesson:'الدرس', duration:'المدة', done:'تم', markDone:'إكمال الدرس', contentSoon:'محتوى هذا الدرس يُضاف من لوحة المدرس.',
+    needSetup:'ابدأ بربط المشروع', welcome:'مرحباً', myLearning:'تعلمي', continueLearning:'استكمال',
+    noLibrary:'لا توجد كورسات مفعلة بعد. فعّل كوداً للبدء.', payFirst:'سجّل الدفع أولاً ثم أصدر الكود.',
+    noCourses:'لا توجد كورسات منشورة', err:'حدث خطأ', copied:'تم النسخ', minutes:'دقيقة'
+  },
+  en:{
+    appName:'Al-Manarah', tagline:'Learn with clarity',
+    setupTitle:'Connect Al-Manarah to your project', setupHint:'Open Supabase → Project Settings → API and copy both values.',
+    url:'Project URL', anon:'anon public key', save:'Save & start', setupNote:'The public key is safe to ship — all security is enforced by the database.',
+    login:'Log in', signup:'Sign up', email:'Email', password:'Password', pwd2:'Confirm password',
+    name:'Full name', phone:'Phone (optional)', forgot:'Forgot password?', noAccount:'No account yet?', haveAccount:'Already registered?',
+    logout:'Log out', save2:'Save', cancel:'Cancel', search:'Search', print:'Print', copy:'Copy', close:'Close',
+    home:'Home', library:'My learning', catalog:'Catalog', profile:'Profile',
+    officerHome:'Enrollment desk', findStudent:'Find student', confirmPay:'Confirm payment', issueCode:'Issue codes',
+    myCodes:'My codes', adminHome:'Dashboard', users:'Users', payments:'Payments', audit:'Audit log',
+    studentEmail:'Student email', course:'Course', amount:'Amount', currency:'Currency', receipt:'Receipt ref',
+    notes:'Notes', confirmPayment:'Confirm payment', paymentDone:'Payment recorded',
+    codeType:'Code type', assigned:'Assigned', voucher:'Voucher', campaign:'Campaign',
+    scope:'Access scope', fullCourse:'Whole course', someSubjects:'Specific subjects',
+    batchSize:'Number of codes (max 500)', maxUses:'Max uses', validUntil:'Valid until', accessDays:'Access days',
+    issue:'Issue codes', issuedCodes:'Issued codes — shown once only', printAll:'Print all',
+    activate:'Activate', activateCode:'Activation code', activateBtn:'Activate', activated:'Activated successfully',
+    progress:'Progress', lessons:'lessons', completed:'completed', open:'Open', locked:'Locked', preview:'Free preview',
+    freePreview:'Free', notFound:'No results', forbidden:'Not allowed',
+    role:'Role', status:'Status', createdAt:'Joined', actions:'Actions', grant:'Grant', revoke:'Revoke',
+    suspend:'Suspend', disable:'Disable', activate2:'Activate', back:'Back', total:'Total',
+    dark:'Dark', light:'Light', lang:'العربية', courseName:'Course', subject:'Subject', unit:'Unit',
+    lesson:'Lesson', duration:'Duration', done:'Done', markDone:'Mark complete', contentSoon:'This lesson content is added from the instructor dashboard.',
+    needSetup:'Connect project first', welcome:'Welcome', myLearning:'My learning', continueLearning:'Continue',
+    noLibrary:'No active courses yet. Activate a code to start.', payFirst:'Record the payment first, then issue the code.',
+    noCourses:'No published courses', err:'Something went wrong', copied:'Copied', minutes:'min'
+  }
+};
+let lang = LS.get('mn_lang','ar');
+let theme = LS.get('mn_theme','light');
+const t = k => (I18N[lang]&&I18N[lang][k]) ?? I18N.ar[k] ?? k;
+
+/* ------------------------------------------------------------- الحالة -------- */
+let cfg = LS.get('mn_cfg',null);
+let sb = null;
+let S = { session:null, profile:null, roles:[], route:'home', codes:[], pendingPayment:null, lastStudent:null };
+
+function toast(msg,kind=''){
+  const d=document.createElement('div');
+  d.className='toast '+kind; d.textContent=msg;
+  $('#toasts').appendChild(d);
+  setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity .4s';setTimeout(()=>d.remove(),400);},4200);
+}
+const errMsg = e => (e&&e.message)||t('err');
+
+function applyChrome(){
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang==='ar'?'rtl':'ltr';
+  document.documentElement.dataset.theme = theme;
+}
+
+/* ------------------------------------------------------------ الإعداد ------- */
+function renderSetup(){
+  $('#app').innerHTML = `
+  <div class="center">
+    <div class="card">
+      <div class="row" style="margin-bottom:6px">
+        <div class="logo" style="color:var(--navy)"><span class="dot"></span>${esc(t('appName'))}</div>
+      </div>
+      <h1>${esc(t('setupTitle'))}</h1>
+      <p class="mut">${esc(t('setupHint'))}</p>
+      <label>${esc(t('url'))}</label>
+      <input id="s_url" placeholder="https://xxxxxxxx.supabase.co" value="${esc(cfg?.url||'')}">
+      <label>${esc(t('anon'))}</label>
+      <input id="s_key" placeholder="eyJhbGciOi..." value="${esc(cfg?.anon||'')}">
+      <p class="mut" style="margin-top:10px">${esc(t('setupNote'))}</p>
+      <div class="row" style="margin-top:14px">
+        <button class="btn btn-p grow" id="s_go">${esc(t('save'))}</button>
+      </div>
+    </div>
+  </div>`;
+  $('#s_go').onclick = ()=>{
+    const url=$('#s_url').value.trim(), anon=$('#s_key').value.trim();
+    if(!url||!anon) return toast(t('err'),'bad');
+    LS.set('mn_cfg',{url,anon}); cfg={url,anon}; sb=createClient(url,anon); boot();
+  };
+}
+
+/* --------------------------------------------------------------- الهيكل ----- */
+function shell(nav,view){
+  const items = nav.map(n=>`<a href="#/${n.r}" class="${S.route===n.r?'on':''}">${esc(n.l)}</a>`).join('');
+  return `
+  <div class="top">
+    <div class="logo"><span class="dot"></span>${esc(t('appName'))}</div>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="b_lang">${esc(t('lang'))}</button>
+    <button class="iconbtn" id="b_theme">${esc(t(theme==='dark'?'light':'dark'))}</button>
+    <button class="iconbtn" id="b_out">${esc(t('logout'))}</button>
+  </div>
+  <div class="layout">
+    <aside class="side">${items}</aside>
+    <main class="main" id="view">${view}</main>
+  </div>`;
+}
+function bindChrome(){
+  $('#b_lang').onclick=()=>{lang=lang==='ar'?'en':'ar';LS.set('mn_lang',lang);applyChrome();route();};
+  $('#b_theme').onclick=()=>{theme=theme==='dark'?'light':'dark';LS.set('mn_theme',theme);applyChrome();route();};
+  $('#b_out').onclick=async()=>{await sb.auth.signOut();S.session=null;S.profile=null;location.hash='';render();};
+}
+
+/* ---------------------------------------------------------------- التوثيق ---- */
+function renderAuth(){
+  const mode = S.authMode||'login';
+  $('#app').innerHTML = `
+  <div class="center">
+    <div class="hero" style="text-align:center">
+      <div class="logo" style="justify-content:center;color:#fff"><span class="dot"></span>${esc(t('appName'))}</div>
+      <p class="mut" style="margin:6px 0 0">${esc(t('tagline'))}</p>
+    </div>
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <button class="btn btn-s ${mode==='login'?'btn-p':''}" id="m_login">${esc(t('login'))}</button>
+        <button class="btn btn-s ${mode==='signup'?'btn-p':''}" id="m_signup">${esc(t('signup'))}</button>
+      </div>
+      ${mode==='signup'?`<label>${esc(t('name'))}</label><input id="a_name">`:''}
+      <label>${esc(t('email'))}</label>
+      <input id="a_email" type="email" autocomplete="email">
+      <label>${esc(t('password'))}</label>
+      <input id="a_pwd" type="password" autocomplete="current-password">
+      ${mode==='signup'?`<label>${esc(t('pwd2'))}</label><input id="a_pwd2" type="password">
+      <label>${esc(t('phone'))}</label><input id="a_phone">`:''}
+      <div class="row" style="margin-top:16px">
+        <button class="btn btn-p grow" id="a_go">${esc(mode==='login'?t('login'):t('signup'))}</button>
+      </div>
+      ${mode==='login'?`<div class="row" style="margin-top:10px"><button class="btn btn-s" id="a_forgot">${esc(t('forgot'))}</button></div>`:''}
+      <p class="mut" style="margin-top:12px">${esc(mode==='login'?t('noAccount'):t('haveAccount'))}</p>
+    </div>
+  </div>`;
+  $('#m_login').onclick=()=>{S.authMode='login';renderAuth();};
+  $('#m_signup').onclick=()=>{S.authMode='signup';renderAuth();};
+  $('#a_go').onclick=async()=>{
+    const email=$('#a_email').value.trim(), pwd=$('#a_pwd').value;
+    try{
+      if(!email||!pwd) throw new Error(t('err'));
+      if(mode==='signup'){
+        if(pwd!==$('#a_pwd2').value) throw new Error(t('err'));
+        const {data,error}=await sb.auth.signUp({email,password:pwd,options:{data:{full_name:$('#a_name').value.trim()}}});
+        if(error) throw error;
+        if(!data.session) toast('تحقق من بريدك لتأكيد الحساب / Check your inbox to confirm');
+      }else{
+        const {error}=await sb.auth.signInWithPassword({email,password:pwd});
+        if(error) throw error;
+      }
+      await loadMe(); render();
+    }catch(e){ toast(errMsg(e),'bad'); }
+  };
+  if(mode==='login') $('#a_forgot').onclick=async()=>{
+    const email=$('#a_email').value.trim(); if(!email) return toast(t('err'),'bad');
+    const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+    toast(error?errMsg(error):'أُرسل رابط الاستعادة / Reset link sent', error?'bad':'ok');
+  };
+}
+
+async function loadMe(){
+  const {data:{session}}=await sb.auth.getSession();
+  S.session=session;
+  if(!session) return;
+  const {data:prof}=await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
+  S.profile=prof;
+  const {data:roles}=await sb.from('user_roles').select('role').eq('user_id',session.user.id);
+  S.roles=(roles||[]).map(r=>r.role);
+  const isStaff = S.roles.some(r=>r!=='student');
+  S.route = isStaff ? 'desk' : 'home';
+  if(!isStaff && S.route!=='home') S.route='home';
+}
+
+/* ------------------------------------------------------- بوابة الطالب ------- */
+async function viewStudentHome(){
+  let lib=[];
+  try{ const {data,error}=await sb.rpc('my_library'); if(!error) lib=data||[]; }catch(e){}
+  const byCourse={};
+  lib.forEach(r=>{
+    const k=r.course_id;
+    byCourse[k]=byCourse[k]||{course_id:k,title_ar:r.course_title_ar,title_en:r.course_title_en,exp:r.expires_at,subs:[]};
+    if(r.subject_id) byCourse[k].subs.push(r);
+  });
+  const cards=Object.values(byCourse).map(c=>{
+    const done=c.subs.reduce((a,s)=>a+(s.lessons_done||0),0);
+    const tot=c.subs.reduce((a,s)=>a+(s.lessons_total||0),0);
+    const p=tot?Math.round(done*100/tot):0;
+    return `<div class="card">
+      <div class="row"><h3 class="grow">${esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))}</h3>
+        <span class="tag ${c.exp?'warn':'ok'}">${c.exp?('حتى '+new Date(c.exp).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')):'دائم'}</span></div>
+      <div class="row" style="margin:8px 0"><div class="bar grow"><i style="width:${p}%"></i></div><span class="mut">${p}%</span></div>
+      ${c.subs.map(s=>`<div class="lesson">
+        <div class="grow"><b>${esc(lang==='ar'?s.subject_title_ar:(s.subject_title_en||s.subject_title_ar))}</b>
+        <div class="mut">${s.lessons_done||0} / ${s.lessons_total||0} ${esc(t('lessons'))}</div></div>
+        <a class="btn btn-s btn-p" href="#/subject/${s.subject_id}">${esc(t('open'))}</a></div>`).join('')}
+      ${c.subs.length?'':`<a class="btn btn-s btn-p" href="#/course/${c.course_id}">${esc(t('open'))}</a>`}
+    </div>`;
+  }).join('');
+
+  return `
+  <h1>${esc(t('welcome'))}، ${esc(S.profile?.full_name||'')} 👋</h1>
+  <p class="mut">${esc(t('tagline'))}</p>
+  <div class="card">
+    <h2>${esc(t('activateCode'))}</h2>
+    <div class="row">
+      <input id="cd" class="grow mono" placeholder="XXXXXXXXXXXX" maxlength="24" style="text-transform:uppercase">
+      <button class="btn btn-g" id="cd_go">${esc(t('activateBtn'))}</button>
+    </div>
+    <p class="mut" style="margin-top:8px">${esc(t('payFirst'))}</p>
+  </div>
+  <h2 style="margin-top:18px">${esc(t('myLearning'))}</h2>
+  ${cards||`<div class="card mut">${esc(t('noLibrary'))}</div>`}`;
+}
+function bindStudentHome(){
+  $('#cd_go').onclick=async()=>{
+    const code=$('#cd').value.trim();
+    if(!code) return toast(t('err'),'bad');
+    try{
+      const {data,error}=await sb.rpc('activate_code',{p_code:code});
+      if(error) throw error;
+      toast(t('activated'),'ok'); $('#cd').value=''; render();
+    }catch(e){ toast(errMsg(e),'bad'); }
+  };
+}
+
+async function viewCatalog(){
+  const {data:courses}=await sb.from('courses').select('*').eq('status','published').order('sort_order');
+  return `<h1>${esc(t('catalog'))}</h1>
+  <div class="grid">${(courses||[]).map(c=>`
+    <a class="card" href="#/course/${c.id}">
+      <span class="tag gold">${esc(c.level)}</span>
+      <h3 style="margin-top:8px">${esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))}</h3>
+      <p class="mut">${esc((lang==='ar'?c.desc_ar:(c.desc_en||c.desc_ar)).slice(0,110))}…</p>
+      <div class="row"><span class="tag">${c.price} ${esc(c.currency)}</span></div>
+    </a>`).join('')||`<div class="card mut">${esc(t('noCourses'))}</div>`}</div>`;
+}
+
+async function viewCourse(id){
+  const {data:c}=await sb.from('courses').select('*').eq('id',id).maybeSingle();
+  const {data:subs}=await sb.from('subjects').select('*').eq('course_id',id).eq('status','published').order('sort_order');
+  const {data:lib}=await sb.rpc('my_library').catch(()=>({data:[]}));
+  const owned=new Set((lib||[]).filter(r=>r.subject_id).map(r=>r.subject_id));
+  const ownedCourse=(lib||[]).some(r=>r.course_id===id);
+  return `<div class="row"><a class="btn btn-s" href="#/catalog">← ${esc(t('back'))}</a></div>
+  <div class="card" style="margin-top:12px">
+    <span class="tag gold">${esc(c.level)} · ${c.price} ${esc(c.currency)}</span>
+    <h1 style="margin-top:8px">${esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))}</h1>
+    <p class="mut">${esc(lang==='ar'?c.desc_ar:(c.desc_en||c.desc_ar))}</p>
+  </div>
+  <h2>${esc(t('subject'))}</h2>
+  ${(subs||[]).map(s=>`
+    <div class="lesson">
+      <div class="grow"><b>${esc(lang==='ar'?s.title_ar:(s.title_en||s.title_ar))}</b></div>
+      ${owned.has(s.id)||ownedCourse
+        ? `<a class="btn btn-s btn-p" href="#/subject/${s.id}">${esc(t('open'))}</a>`
+        : `<span class="tag lock">🔒 ${esc(t('locked'))}</span>`}
+    </div>`).join('')}`;
+}
+
+async function viewSubject(id){
+  const {data:s}=await sb.from('subjects').select('*').eq('id',id).maybeSingle();
+  const {data:units}=await sb.from('units').select('*').eq('subject_id',id).order('sort_order');
+  const unitIds=(units||[]).map(u=>u.id);
+  let lessons=[];
+  if(unitIds.length){
+    const {data:l}=await sb.from('lessons').select('*').in('unit_id',unitIds).eq('status','published').order('sort_order');
+    lessons=l||[];
+  }
+  let prog={};
+  try{ const {data}=await sb.from('lesson_progress').select('*'); (data||[]).forEach(p=>prog[p.lesson_id]=p); }catch(e){}
+  const uName={};(units||[]).forEach(u=>uName[u.id]=lang==='ar'?u.title_ar:(u.title_en||u.title_ar));
+  const done=lessons.filter(l=>prog[l.id]?.completed_at).length;
+  return `<div class="row"><a class="btn btn-s" href="#/course/${s.course_id}">← ${esc(t('back'))}</a></div>
+  <div class="card" style="margin-top:12px">
+    <h1>${esc(lang==='ar'?s.title_ar:(s.title_en||s.title_ar))}</h1>
+    <div class="row" style="margin-top:8px"><div class="bar grow"><i style="width:${lessons.length?done*100/lessons.length:0}%"></i></div>
+      <span class="mut">${done}/${lessons.length}</span></div>
+  </div>
+  ${lessons.map(l=>`
+    <div class="lesson">
+      <div class="grow"><b>${esc(lang==='ar'?l.title_ar:(l.title_en||l.title_ar))}</b>
+        <div class="mut">${esc(uName[l.unit_id]||'')} · ${Math.round(l.duration_seconds/60)} ${esc(t('minutes'))}</div></div>
+      ${l.is_free_preview?`<span class="tag ok">${esc(t('preview'))}</span>`:''}
+      ${prog[l.id]?.completed_at?`<span class="tag ok">✓</span>`:''}
+      <a class="btn btn-s ${prog[l.id]?.completed_at?'':'btn-p'}" href="#/lesson/${l.id}">${esc(t('open'))}</a>
+    </div>`).join('')}`;
+}
+
+async function viewLesson(id){
+  const {data:l}=await sb.from('lessons').select('*, lesson_content(*)').eq('id',id).maybeSingle();
+  if(!l) return `<div class="card">${esc(t('notFound'))}</div>`;
+  const c=Array.isArray(l.lesson_content)?l.lesson_content[0]:l.lesson_content;
+  const locked=!c;
+  const {data:{session}}=await sb.auth.getSession();
+  return `<div class="row"><a class="btn btn-s" href="#/subject/${l.unit_id}">← ${esc(t('back'))}</a></div>
+  <div class="card" style="margin-top:12px">
+    <h1>${esc(lang==='ar'?l.title_ar:(l.title_en||l.title_ar))}</h1>
+    ${locked
+      ? `<div class="tag warn">🔒 ${esc(t('locked'))}</div><p class="mut" style="margin-top:10px">${esc(t('contentSoon'))}</p>`
+      : `<div style="margin:12px 0;background:#000;border-radius:10px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:#888">${esc(t('contentSoon'))}</div>
+         ${c.body?`<p>${esc(c.body)}</p>`:''}
+         ${(c.attachments||[]).length?`<h3>مرفقات</h3>${c.attachments.map(a=>`<div class="lesson"><span class="grow">📎 ${esc(a.name||a.url)}</span><a class="btn btn-s" target="_blank" href="${esc(a.url)}">فتح</a></div>`).join('')}`:''}`}
+    <div class="row" style="margin-top:14px">
+      <button class="btn btn-p" id="mk_done">${esc(t('markDone'))}</button>
+    </div>
+  </div>
+  <script type="application/json" id="lesson_id">${esc(id)}<\/script>`;
+}
+function bindLesson(id){
+  const b=$('#mk_done'); if(!b) return;
+  b.onclick=async()=>{
+    const {error}=await sb.rpc('mark_lesson',{p_lesson_id:id,p_completed:true,p_position:0});
+    toast(error?errMsg(error):t('done'),error?'bad':'ok');
+    if(!error) render();
+  };
+}
+
+function viewProfile(){
+  return `<h1>${esc(t('profile'))}</h1>
+  <div class="card">
+    <label>${esc(t('name'))}</label><input id="p_name" value="${esc(S.profile?.full_name||'')}">
+    <label>${esc(t('email'))}</label><input value="${esc(S.session?.user?.email||'')}" disabled>
+    <div class="row" style="margin-top:14px"><button class="btn btn-p" id="p_save">${esc(t('save2'))}</button></div>
+  </div>
+  <div class="card">
+    <h2>${esc(t('password'))}</h2>
+    <label>${esc(t('password'))}</label><input id="p_new" type="password">
+    <div class="row" style="margin-top:12px"><button class="btn" id="p_pwd">${esc(t('save2'))}</button></div>
+  </div>`;
+}
+function bindProfile(){
+  $('#p_save').onclick=async()=>{
+    const {error}=await sb.from('profiles').update({full_name:$('#p_name').value.trim(),updated_at:new Date().toISOString()}).eq('id',S.session.user.id);
+    toast(error?errMsg(error):'تم',error?'bad':'ok'); if(!error) loadMe().then(render);
+  };
+  $('#p_pwd').onclick=async()=>{
+    const p=$('#p_new').value; if(p.length<8) return toast('كلمة المرور قصيرة / too short','bad');
+    const {error}=await sb.auth.updateUser({password:p});
+    toast(error?errMsg(error):'تم',error?'bad':'ok');
+  };
+}
+
+/* ---------------------------------------------------- غرفة التسجيل (موظف) --- */
+function deskNav(){
+  const n=[{r:'desk',l:t('officerHome')},{r:'find',l:t('findStudent')},{r:'pay',l:t('confirmPay')},{r:'issue',l:t('issueCode')},{r:'mycodes',l:t('myCodes')}];
+  if(S.roles.includes('super_admin')) n.push({r:'admin',l:t('adminHome')},{r:'users',l:t('users')},{r:'payments',l:t('payments')},{r:'audit',l:t('audit')});
+  if(S.roles.includes('student')&&!S.roles.includes('enrollment_officer')&&!S.roles.includes('super_admin')) n.unshift({r:'home',l:t('home')});
+  return n;
+}
+
+async function viewDesk(){
+  let d={};
+  try{ const {data}=await sb.rpc('admin_dashboard'); if(data) d=data; }catch(e){}
+  if(!Object.keys(d).length){
+    try{ const {data}=await sb.rpc('my_issued_codes',{p_days:30}); d={codes:(data||[]).length}; }catch(e){}
+  }
+  const k=(l,v)=>`<div class="kpi"><span class="mut">${esc(l)}</span><b>${esc(v??0)}</b></div>`;
+  return `<h1>${esc(t('officerHome'))}</h1>
+  <div class="grid">
+    ${k(t('studentsTotal' in I18N.ar?I18N.ar.studentsTotal:t('users'),d.students_total)}
+    ${k(t('payments'),d.payments_count)}
+    ${k(t('total'),d.payments_total)}
+    ${k(t('myCodes'),d.codes_used)}
+  </div>
+  <div class="card">
+    <h2>${esc(t('findStudent'))}</h2>
+    <p class="mut">${esc(t('payFirst'))}</p>
+    <div class="row" style="margin-top:10px">
+      <a class="btn btn-p" href="#/find">${esc(t('search'))}</a>
+      <a class="btn" href="#/issue">${esc(t('issueCode'))}</a>
+      <a class="btn" href="#/mycodes">${esc(t('myCodes'))}</a>
+    </div>
+  </div>`;
+}
+
+async function viewFind(){
+  const res=S.lastStudent;
+  return `<h1>${esc(t('findStudent'))}</h1>
+  <div class="card">
+    <div class="row">
+      <input id="f_email" class="grow" type="email" placeholder="student@example.com" value="${esc(S.findEmail||'')}">
+      <button class="btn btn-p" id="f_go">${esc(t('search'))}</button>
+    </div>
+    <p class="mut" style="margin-top:6px">البحث بالبريد المسجّل فقط · Search by exact registered email</p>
+  </div>
+  ${res?renderStudentCard(res):''}`;
+}
+function renderStudentCard(s){
+  if(!s.found) return `<div class="card"><span class="tag bad">${esc(t('notFound'))}</span></div>`;
+  const ent=(s.enrollments||[]).map(e=>`<tr>
+    <td>${esc(e.course||'')}</td><td>${esc(e.subject||'—')}</td>
+    <td><span class="tag ${e.status==='active'?'ok':'bad'}">${esc(e.status)}</span></td>
+    <td class="mono">${e.expires_at?new Date(e.expires_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB'):'—'}</td></tr>`).join('');
+  return `<div class="card">
+    <div class="row">
+      <h2 class="grow">${esc(s.name)}</h2>
+      <span class="tag ${s.status==='active'?'ok':'warn'}">${esc(s.status)}</span>
+      ${s.email_confirmed?'':'<span class="tag warn">بريد غير مؤكد</span>'}
+    </div>
+    <p class="mut mono">${esc(s.email_masked)} · ${esc(s.phone_masked||'—')} · ${new Date(s.created_at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')}</p>
+    <h3 style="margin-top:14px">التسجيلات</h3>
+    <table><thead><tr><th>${esc(t('course'))}</th><th>${esc(t('subject'))}</th><th>${esc(t('status'))}</th><th>ينتهي</th></tr></thead>
+    <tbody>${ent||`<tr><td colspan="4" class="mut">—</td></tr>`}</tbody></table>
+    <div class="row" style="margin-top:14px">
+      <a class="btn btn-g" href="#/pay?email=${encodeURIComponent(S.findEmail||'')}">${esc(t('confirmPay'))}</a>
+    </div>
+  </div>`;
+}
+function bindFind(){
+  $('#f_go').onclick=async()=>{
+    const email=$('#f_email').value.trim(); if(!email) return toast(t('err'),'bad');
+    S.findEmail=email;
+    try{
+      const {data,error}=await sb.rpc('search_student',{p_email:email});
+      if(error) throw error;
+      S.lastStudent=data; render();
+    }catch(e){ toast(errMsg(e),'bad'); }
+  };
+}
+
+async function viewPay(){
+  const {data:courses}=await sb.from('courses').select('*').order('title_ar');
+  const pre=S.findEmail||'';
+  return `<h1>${esc(t('confirmPay'))}</h1>
+  <div class="card">
+    <label>${esc(t('studentEmail'))}</label>
+    <input id="pay_email" type="email" value="${esc(pre)}">
+    <label>${esc(t('course'))}</label>
+    <select id="pay_course">${(courses||[]).map(c=>`<option value="${c.id}">${esc(lang==='ar'?c.title_ar:(c.title_en||c.title_ar))} — ${c.price} ${esc(c.currency)}</option>`).join('')}</select>
+    <div class="row">
+      <div class="grow"><label>${esc(t('amount'))}</label><input id="pay_amount" type="number" min="0" step="0.01"></div>
+      <div class="grow"><label>${esc(t('currency'))}</label><input id="pay_currency" value="EGP"></div>
+    </div>
+    <label>${esc(t('receipt'))}</label><input id="pay_receipt">
+    <label>${esc(t('notes'))}</label><input id="pay_notes">
+    <div class="row" style="margin-top:16px">
+      <button class="btn btn-p" id="pay_go">${esc(t('confirmPayment'))}</button>
+    </div>
+  </div>
+  <div class="card hidden" id="pay_next"></div>`;
+}
+function bindPay(){
+  $('#pay_go').onclick=async()=>{
+    const p={
+      p_student_email:$('#pay_email').value.trim(),
+      p_course_id:$('#pay_course').value,
+      p_amount:Number($('#pay_amount').value||0),
+      p_currency:$('#pay_currency').value.trim()||'EGP',
+      p_receipt_ref:$('#pay_receipt').value.trim()||null,
+      p_notes:$('#pay_notes').value.trim()||null
+    };
+    if(!p.p_student_email||!p.p_amount) return toast(t('err'),'bad');
+    try{
+      const {data,error}=await sb.rpc('confirm_payment',p);
+      if(error) throw error;
+      toast(t('paymentDone'),'ok');
+      const box=$('#pay_next'); box.classList.remove('hidden');
+      box.innerHTML=`<h2>✅ ${esc(t('paymentDone'))}</h2>
+        <p class="mut">${esc(data.student_name)}</p>
+        <div class="row" style="margin-top:10px">
+          <a class="btn btn-g" href="#/issue?pay=${data.payment_id}">${esc(t('issueCode'))}</a>
+          <a class="btn" href="#/find">${esc(t('findStudent'))}</a>
+        </div>`;
+    }catch(e){ toast(errMsg(e),'bad'); }
+  };
+}
+
+async function viewIssue(){
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');
+  const payId=params.get('pay')||S.pendingPayment||'';
+  const {data:courses}=await sb.from('courses').select('*').order('title_ar');
+  let subs=[];
+  if(courses?.length){
+    const {data:s}=await sb.from('subjects').select('*').in('course_id',courses.map(c=>c.id)).order('sort_order');
+    subs=s||[];
+  }
+  let payments=[];
+  try{ const {data}=await sb.rpc('officer_recent_payments',{p_limit:15}); payments=data||[]; }catch(e){}
+
+  return `<h1>${esc(t('issueCode'))}</h1>
+  <div class="card">
+    <label>سجل الدفع</label>
+    <select id="i_pay">
+      <option value="">— اختر سجل دفع —</option>
+      ${payments.map(p=>`<option value="${p.id}" ${p.id===payId?'selected':''}>${esc(p.student_name)} · ${esc(p.course)} · ${p.amount} ${esc(p.currency)} · ${new Date(p.at).toLocaleDateString(lang==='ar'?'ar-EG':'en-GB')}</option>`).join('')}
+    </select>
+    <label>${esc(t('codeType'))}</label>
+    <select id="i_type">
+      <option value="assigned">${esc(t('assigned'))}</option>
+      <option value="voucher">${esc(t('voucher'))}</option>
+      <option value="campaign">${esc(t('campaign'))}</option>
+    </select>
+    <label>${esc(t('scope'))}</label>
+    <select id="i_scope"><option value="full">${esc(t('fullCourse'))}</option><option value="subs">${esc(t('someSubjects'))}</option></select>
+    <div id="i_subs" class="hidden" style="margin-top:8px;max-height:200px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">
+      ${subs.map(s=>`<label style="display:flex;gap:8px;align-items:center;margin:4px 0"><input type="checkbox" value="${s.id}" style="width:auto;margin:0"> ${esc(s.title_ar)}</label>`).join('')}
+    </div>
+    <div class="row">
+      <div class="grow"><label>${esc(t('batchSize'))}</label><input id="i_batch" type="number" min="1" max="500" value="1"></div>
+      <div class="grow"><label>${esc(t('maxUses'))}</label><input id="i_uses" type="number" min="1" value="1"></div>
+      <div class="grow"><label>${esc(t('accessDays'))}</label><input id="i_days" type="number" min="0" placeholder="∞"></div>
+    </div>
+    <label>${esc(t('validUntil'))}</label><input id="i_until" type="date">
+    <label>${esc(t('notes'))}</label><input id="i_notes">
+    <div class="row" style="margin-top:16px"><button class="btn btn-g" id="i_go">${esc(t('issue'))}</button></div>
+  </div>
+  <div id="i_out"></div>`;
+}
+function bindIssue(){
+  const scope=$('#i_scope');
+  scope.onchange=()=>$('#i_subs').classList.toggle('hidden',scope.value!=='subs');
+  $('#i_go').onclick=async()=>{
+    const payId=$('#i_pay').value;
+    if(!payId) return toast('اختر سجل دفع / select a payment','bad');
+    const subjectIds=scope.value==='subs'
+      ? [...$('#i_subs').querySelectorAll('input:checked')].map(i=>i.value) : null;
+    if(scope.value==='subs'&&!subjectIds.length) return toast('اختر مادة / pick subjects','bad');
+    const until=$('#i_until').value? new Date($('#i_until').value+'T23:59:59Z').toISOString() : null;
+    const days=Number($('#i_days').value||0)||null;
+    try{
+      const {data,error}=await sb.rpc('issue_activation_codes',{
+        p_payment_id:payId,
+        p_code_type:$('#i_type').value,
+        p_batch_size:Number($('#i_batch').value||1),
+        p_max_uses:Number($('#i_uses').value||1),
+        p_valid_until:until,
+        p_access_days:days,
+        p_subject_ids:subjectIds,
+        p_notes:$('#i_notes').value.trim()||null
+      });
+      if(error) throw error;
+      S.codes=(data||[]).map(r=>r.code);
+      renderIssueResult();
+      toast('تم الإصدار / issued','ok');
+    }catch(e){ toast(errMsg(e),'bad'); }
+  };
+}
+function renderIssueResult(){
+  const box=$('#i_out'); if(!box) return;
+  if(!S.codes.length){ box.innerHTML=''; return; }
+  box.innerHTML=`<div class="card">
+    <h2>⚠️ ${esc(t('issuedCodes'))}</h2>
+    <div class="row" style="margin:10px 0">
+      <button class="btn btn-p" id="i_print">${esc(t('printAll'))}</button>
+      <button class="btn" id="i_copy">${esc(t('copy'))}</button>
+    </div>
+    <div class="grid">${S.codes.map(c=>`<div class="code">${esc(c)}</div>`).join('')}</div>
+  </div>
+  <div id="printArea"></div>`;
+  $('#i_print').onclick=()=>{
+    $('#printArea').innerHTML=`<h2 style="text-align:center">AL-MANARAH — أكواد التفعيل</h2>`+
+      S.codes.map(c=>`<div class="pcard"><div>كود تفعيل</div><div class="c">${esc(c)}</div><div style="font-size:12px">almanarah · مرة واحدة</div></div>`).join('');
+    window.print();
+  };
+  $('#i_copy').onclick=()=>{
+    navigator.clipboard.writeText(S.codes.join('\n')).then(()=>toast(t('copied'),'ok'));
+  };
+}
+
+async function viewMyCodes(){
+  let rows=[];
+  try{ const {data}=await sb.rpc('my_issued_codes',{p_days:90}); rows=data||[]; }catch(e){}
+  return `<h1>${esc(t('myCodes'))}</h1>
+  <div class="card"><table>
+    <thead><tr><th>${esc(t('course'))}</th><th>${esc(t('scope'))}</th><th>${esc(t('codeType'))}</th><th>${esc(t('status'))}</th><th>استُخدم</th><th>${esc(t('createdAt'))}</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td>${esc(r.course)}</td><td>${esc(r.scope)}</td><td>${esc(r.type)}</td>
+      <td><span class="tag ${r.status==='unused'?'ok':r.status==='used'?'gold':'bad'}">${esc(r.status)}</span></td>
+      <td class="mono">${r.uses_count}/${r.max_uses}</td>
+      <td class="mono">${new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')}</td></tr>`).join('')
+      ||`<tr><td colspan="6" class="mut">—</td></tr>`}</tbody>
+  </table></div>`;
+}
+
+/* ------------------------------------------------------ لوحة الإدارة العليا -- */
+async function viewAdmin(){
+  let d={};
+  try{ const {data}=await sb.rpc('admin_dashboard'); if(data) d=data; }catch(e){ toast(errMsg(e),'bad'); }
+  const k=(l,v)=>`<div class="kpi"><span class="mut">${esc(l)}</span><b>${esc(v??0)}</b></div>`;
+  return `<h1>${esc(t('adminHome'))}</h1>
+  <div class="grid">
+    ${k('إجمالي الطلاب',d.students_total)}${k('طلاب نشطون',d.students_active)}${k('جدد (7 أيام)',d.students_new_7d)}
+    ${k('كورسات منشورة',d.courses_published)}
+    ${k('عمليات دفع',d.payments_count)}${k('إجمالي التحصيل',d.payments_total)}
+    ${k('أكواد مستخدمة',d.codes_used)}${k('أكواد غير مستخدمة',d.codes_unused)}
+    ${k('أحداث تدقيق (24س)',d.audit_24h)}
+  </div>
+  <div class="card"><div class="row">
+    <a class="btn btn-p" href="#/users">${esc(t('users'))}</a>
+    <a class="btn" href="#/payments">${esc(t('payments'))}</a>
+    <a class="btn" href="#/audit">${esc(t('audit'))}</a>
+  </div></div>`;
+}
+
+async function viewUsers(){
+  let rows=[]; const q=S.userQuery||'';
+  try{ const {data}=await sb.rpc('admin_list_users',{p_query:q,p_limit:100}); rows=data||[]; }catch(e){ toast(errMsg(e),'bad'); }
+  return `<h1>${esc(t('users'))}</h1>
+  <div class="card"><div class="row">
+    <input id="u_q" class="grow" placeholder="بحث بالبريد أو الاسم" value="${esc(q)}">
+    <button class="btn btn-p" id="u_go">${esc(t('search'))}</button>
+  </div></div>
+  <div class="card"><table>
+    <thead><tr><th>${esc(t('name'))}</th><th>${esc(t('email'))}</th><th>${esc(t('role'))}</th><th>${esc(t('status'))}</th><th>${esc(t('actions'))}</th></tr></thead>
+    <tbody>${rows.map(u=>`<tr>
+      <td>${esc(u.name)}</td><td class="mono">${esc(u.email)}</td>
+      <td>${esc(u.roles||'student')}</td>
+      <td><span class="tag ${u.status==='active'?'ok':'bad'}">${esc(u.status)}</span></td>
+      <td>
+        <div class="row" style="gap:4px">
+          <select class="u_role" data-email="${esc(u.email)}" style="width:auto;margin:0;padding:4px">
+            <option value="">—</option>
+            <option value="enrollment_officer">موظف تسجيل</option>
+            <option value="instructor">مدرّس</option>
+            <option value="super_admin">مدير عام</option>
+            <option value="student">طالب</option>
+          </select>
+          <button class="btn btn-s u_grant" data-email="${esc(u.email)}">${esc(t('grant'))}</button>
+          <button class="btn btn-s u_rev" data-email="${esc(u.email)}">${esc(t('revoke'))}</button>
+          ${u.status==='active'
+            ? `<button class="btn btn-s u_st" data-email="${esc(u.email)}" data-st="suspended">${esc(t('suspend'))}</button>`
+            : `<button class="btn btn-s u_st" data-email="${esc(u.email)}" data-st="active">${esc(t('activate2'))}</button>`}
+        </div>
+      </td></tr>`).join('')||`<tr><td colspan="5" class="mut">—</td></tr>`}</tbody>
+  </table></div>`;
+}
+function bindUsers(){
+  $('#u_go').onclick=()=>{S.userQuery=$('#u_q').value.trim();render();};
+  document.querySelectorAll('.u_grant').forEach(b=>b.onclick=async()=>{
+    const email=b.dataset.email;
+    const sel=document.querySelector(`.u_role[data-email="${CSS.escape(email)}"]`);
+    const role=sel?.value; if(!role) return toast('اختر دوراً / pick a role','bad');
+    const {error}=await sb.rpc('admin_grant_role',{p_email:email,p_role:role});
+    toast(error?errMsg(error):'تم',error?'bad':'ok'); if(!error) render();
+  });
+  document.querySelectorAll('.u_rev').forEach(b=>b.onclick=async()=>{
+    const email=b.dataset.email;
+    const sel=document.querySelector(`.u_role[data-email="${CSS.escape(email)}"]`);
+    const role=sel?.value; if(!role) return toast('اختر دوراً / pick a role','bad');
+    const {error}=await sb.rpc('admin_revoke_role',{p_email:email,p_role:role});
+    toast(error?errMsg(error):'تم',error?'bad':'ok'); if(!error) render();
+  });
+  document.querySelectorAll('.u_st').forEach(b=>b.onclick=async()=>{
+    const {error}=await sb.rpc('admin_set_user_status',{p_email:b.dataset.email,p_status:b.dataset.st});
+    toast(error?errMsg(error):'تم',error?'bad':'ok'); if(!error) render();
+  });
+}
+
+async function viewPayments(){
+  let rows=[];
+  try{ const {data}=await sb.rpc('admin_list_payments',{p_limit:100}); rows=data||[]; }catch(e){ toast(errMsg(e),'bad'); }
+  return `<h1>${esc(t('payments'))}</h1>
+  <div class="card"><table>
+    <thead><tr><th>الطالب</th><th>${esc(t('course'))}</th><th>${esc(t('amount'))}</th><th>${esc(t('receipt'))}</th><th>${esc(t('createdAt'))}</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${esc(r.student)}</td><td>${esc(r.course)}</td>
+      <td class="mono">${r.amount} ${esc(r.currency)}</td><td class="mono">${esc(r.receipt||'—')}</td>
+      <td class="mono">${new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')}</td></tr>`).join('')
+      ||`<tr><td colspan="5" class="mut">—</td></tr>`}</tbody></table></div>`;
+}
+
+async function viewAudit(){
+  let rows=[];
+  try{ const {data}=await sb.rpc('admin_list_audit',{p_limit:150}); rows=data||[]; }catch(e){ toast(errMsg(e),'bad'); }
+  return `<h1>${esc(t('audit'))}</h1>
+  <div class="card"><table>
+    <thead><tr><th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>العنصر</th><th>تفاصيل</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mono">${new Date(r.at).toLocaleString(lang==='ar'?'ar-EG':'en-GB')}</td>
+      <td>${esc(r.actor||'—')}</td><td class="mut">${esc(r.role||'—')}</td>
+      <td class="mono">${esc(r.action)}</td><td class="mono">${esc(r.target||'—')}</td>
+      <td class="mono" style="max-width:280px;word-break:break-all">${esc(JSON.stringify(r.meta||{}))}</td></tr>`).join('')
+      ||`<tr><td colspan="6" class="mut">—</td></tr>`}</tbody></table></div>`;
+}
+
+/* ------------------------------------------------------------- الموجّه ------- */
+const VIEWS={
+  home:viewStudentHome, catalog:viewCatalog, profile:viewProfile,
+  desk:viewDesk, find:viewFind, pay:viewPay, issue:viewIssue, mycodes:viewMyCodes,
+  admin:viewAdmin, users:viewUsers, payments:viewPayments, audit:viewAudit
+};
+const BINDERS={
+  home:bindStudentHome, find:bindFind, pay:bindPay, issue:bindIssue,
+  users:bindUsers, profile:bindProfile
+};
+
+async function render(){
+  applyChrome();
+  if(!cfg||!sb){ renderSetup(); return; }
+  if(!S.session){ renderAuth(); return; }
+
+  const staff=S.roles.some(r=>r==='enrollment_officer'||r==='super_admin');
+  const hash=location.hash.replace(/^#\/?/,'');
+  const path=hash.split('?')[0];
+  let key=path.split('/')[0]||'home';
+
+  // توجيه تلقائي
+  if(!key) key = staff?'desk':'home';
+  if(key==='course'){ $('#app').innerHTML=shell(staff?deskNav():[{r:'home',l:t('home')},{r:'catalog',l:t('catalog')},{r:'profile',l:t('profile')}], await viewCourse(path.split('/')[1])); bindChrome(); return; }
+  if(key==='subject'){ $('#app').innerHTML=shell(staff?deskNav():[{r:'home',l:t('home')},{r:'catalog',l:t('catalog')},{r:'profile',l:t('profile')}], await viewSubject(path.split('/')[1])); bindChrome(); return; }
+  if(key==='lesson'){ const id=path.split('/')[1]; $('#app').innerHTML=shell(staff?deskNav():[{r:'home',l:t('home')},{r:'catalog',l:t('catalog')},{r:'profile',l:t('profile')}], await viewLesson(id)); bindChrome(); bindLesson(id); return; }
+
+  if(!VIEWS[key]){
+    if(key==='course'||key==='subject'||key==='lesson') return;
+    key = staff?'desk':'home';
+  }
+  // حماية المسارات الإدارية
+  const adminOnly=['admin','users','payments','audit'];
+  if(adminOnly.includes(key)&&!S.roles.includes('super_admin')) key='desk';
+  if(['desk','find','pay','issue','mycodes'].includes(key)&&!staff) key='home';
+
+  S.route=key;
+  const html=await VIEWS[key]();
+  $('#app').innerHTML=shell(staff?deskNav():[
+    {r:'home',l:t('home')},{r:'catalog',l:t('catalog')},{r:'profile',l:t('profile')}
+  ], html);
+  bindChrome();
+  if(key==='issue') renderIssueResult();
+  BINDERS[key]?.();
+}
+
+async function boot(){
+  if(!cfg){ renderSetup(); return; }
+  sb=createClient(cfg.url,cfg.anon);
+  await loadMe();
+  render();
+}
+window.addEventListener('hashchange',()=>{ if(sb&&S.session) render(); });
+sb||renderSetup();
+if(cfg) boot();
+</script>
+</body>
+</html>
